@@ -1,0 +1,29 @@
+{
+  "name": "nhe-relay",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Open, provider-pluggable relay for LLM-driven game characters on Cloudflare Workers. Bring your own LLM, speech-to-text and text-to-speech; keep the safety core.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test",
+    "deploy:dry": "wrangler deploy --dry-run --outdir dist",
+    "mutants": "node tools/guard-mutations.mjs",
+    "lint:text": "node tools/check-text.mjs",
+    "cf:login": "wrangler login",
+    "secret": "wrangler secret put",
+    "deploy": "wrangler deploy",
+    "deploy:live": "wrangler deploy --var RELAY_ENABLED:yes"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261110.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12",
+    "wrangler": "4.160.1"
+  }
+}

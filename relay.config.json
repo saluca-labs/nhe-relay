@@ -1,0 +1,36 @@
+{
+  "_note": "Default config: Workers AI for all three, so a first deploy needs no third-party key. Prices were read from the Cloudflare Workers AI pricing page on 2026-11-13; check them before you rely on the spend ceiling. See PROVIDERS.md for every provider kind and COSTS.md for how the ceiling works.",
+  "llm": [
+    {
+      "id": "workers-llama",
+      "kind": "workers-ai",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "timeout_ms": 4000,
+      "price": { "input_usd_per_mtok": 0.293, "output_usd_per_mtok": 2.253 }
+    }
+  ],
+  "stt": [
+    {
+      "id": "workers-whisper",
+      "kind": "workers-ai",
+      "model": "@cf/openai/whisper-large-v3-turbo",
+      "timeout_ms": 6000,
+      "price": { "usd_per_minute": 0.0005 }
+    }
+  ],
+  "tts": [
+    {
+      "id": "workers-aura",
+      "kind": "workers-ai",
+      "model": "@cf/deepgram/aura-2-en",
+      "format": "wav",
+      "voice": "luna",
+      "timeout_ms": 6000,
+      "price": { "usd_per_mchar": 30 }
+    }
+  ],
+  "turn_budget_ms": 7000,
+  "max_output_tokens": 300,
+  "spend": { "daily_usd_ceiling": 2 },
+  "cors": { "origins": [], "allow_localhost": true }
+}

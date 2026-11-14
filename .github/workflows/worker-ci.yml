@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+# Worker checks the merge gate does not run: guard mutations, the text rules and a dry-run bundle.
+# Holds no Cloudflare token and deploys nothing.
+name: worker-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    name: Worker CI
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6.5.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - run: npm run lint:text
+      - run: npm run mutants
+      - run: npm run deploy:dry

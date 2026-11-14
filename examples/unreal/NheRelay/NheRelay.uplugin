@@ -1,0 +1,24 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "NHE Relay Client",
+  "Description": "Example client for nhe-relay: talk to an LLM-driven character over HTTP, with a scripted fallback, push-to-talk speech input and spoken replies.",
+  "Category": "AI",
+  "CreatedBy": "Saluca Labs",
+  "CreatedByURL": "https://github.com/saluca-labs/nhe-relay",
+  "DocsURL": "https://github.com/saluca-labs/nhe-relay/tree/main/examples/unreal",
+  "EngineVersion": "5.4.0",
+  "CanContainContent": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "NheRelay",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    { "Name": "AudioCapture", "Enabled": true }
+  ]
+}
