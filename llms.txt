@@ -1,0 +1,20 @@
+# nhe-relay
+
+> An open, zero-dependency relay on Cloudflare Workers that lets non-human entities (game characters, software agents) talk to language and speech models you choose, behind a fixed safety core: server-side personas, client-held memory, hash-chained turns with receipts, an injection screen, an output check, a spend ceiling and a kill switch. Apache-2.0. Version 0.1; no provider adapter is tested live yet.
+
+## Docs
+
+- [README](https://github.com/saluca-labs/nhe-relay/blob/main/README.md): what it does, install, quickstart, API
+- [ARCHITECTURE](https://github.com/saluca-labs/nhe-relay/blob/main/ARCHITECTURE.md): request path, providers, extension points, profiles
+- [PROVIDERS](https://github.com/saluca-labs/nhe-relay/blob/main/PROVIDERS.md): every LLM, STT and TTS provider kind and its live-test status
+- [COSTS](https://github.com/saluca-labs/nhe-relay/blob/main/COSTS.md): the spend ceiling and what a turn costs
+- [SECURITY](https://github.com/saluca-labs/nhe-relay/blob/main/SECURITY.md): threat model, guarantees and non-guarantees
+- [DEPLOY](https://github.com/saluca-labs/nhe-relay/blob/main/DEPLOY.md): deploying through the Cloudflare API, or with Wrangler
+- [CONTRIBUTING](https://github.com/saluca-labs/nhe-relay/blob/main/CONTRIBUTING.md): adding a provider, rules for changes
+
+## Code
+
+- [src/index.js](https://github.com/saluca-labs/nhe-relay/blob/main/src/index.js): Worker entry and routes
+- [src/relay.js](https://github.com/saluca-labs/nhe-relay/blob/main/src/relay.js): the turn pipeline
+- [relay.config.js](https://github.com/saluca-labs/nhe-relay/blob/main/relay.config.js): provider selection and prices
+- [examples](https://github.com/saluca-labs/nhe-relay/tree/main/examples): curl, a JavaScript client, an Unreal Engine plugin

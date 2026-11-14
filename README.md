@@ -13,10 +13,15 @@ comments. Tests run on Node's built-in runner, and deploys go straight to the Cl
 small script that uses Node's own `fetch`. You can read every line that runs, and there is no
 supply chain to audit beyond Node and Cloudflare themselves.
 
-> **Status: 0.1, early.** The relay core and every adapter are covered by unit tests with mocked
-> HTTP. **No adapter has been tested against its live service from this repository yet**; the
-> table in [PROVIDERS.md](PROVIDERS.md) says so per adapter, and will change only with a recorded
-> live run. The Unreal Engine example has not been compiled.
+## Status
+
+Version 0.1, early. The relay core and every adapter are covered by unit tests with mocked HTTP,
+and every guard has a test that fails when the guard is removed. **No adapter has been tested
+against its live service from this repository yet**; the table in [PROVIDERS.md](PROVIDERS.md)
+says so per adapter and will change only with a recorded live run. The deploy tool has been tested
+against a mocked Cloudflare API only, and the Unreal Engine example has not been compiled.
+
+_Last updated: 2026-11-14_
 
 ## What it does
 
@@ -60,14 +65,21 @@ dropped or reordered turns in the state a client sends back. It does not prove t
 honest: the relay stores nothing, so a client can roll back to an older state it was given.
 Full detail in [SECURITY.md](SECURITY.md).
 
-## Quick deploy to your own Cloudflare account
+## Install
 
-You need Node 20 or later and a Cloudflare account with Workers and Workers AI. There is nothing
-to install.
+There is nothing to install: no packages and no build step. You need Node 20 or later (for the
+tests and the deploy tool) and a Cloudflare account with Workers and Workers AI. Get the code:
 
 ```bash
 git clone https://github.com/saluca-labs/nhe-relay
 cd nhe-relay
+```
+
+## Quickstart
+
+Deploy to your own Cloudflare account:
+
+```bash
 node --test
 export CLOUDFLARE_ACCOUNT_ID=<your account id>
 export CLOUDFLARE_API_TOKEN=<a token with Workers Scripts edit>
@@ -94,10 +106,14 @@ it names with `node tools/deploy.mjs secret <NAME>`. Put your own characters in
 `personas/registry.js` and, if you want grounding, your lore in `knowledge/lore.js`. Add your
 game's web origin to `cors.origins`.
 
-Try it with [examples/http/curl.sh](examples/http/curl.sh), or the JavaScript client in
-[examples/http/client.js](examples/http/client.js).
 
-## API
+## Usage
+
+A client talks to the relay over HTTP. Try it with [examples/http/curl.sh](examples/http/curl.sh),
+the JavaScript client in [examples/http/client.js](examples/http/client.js), or the Unreal Engine
+plugin in [examples/unreal](examples/unreal/README.md).
+
+### API
 
 | Route | Purpose |
 |---|---|
@@ -126,7 +142,7 @@ Reply: `{npc_text, memory, state_root, receipt, tts: {ticket, exp}, citations?, 
 On `fallback: true`, show `npc_text` (the persona's fallback line) and keep your stored state.
 `chain.turn` is the exact record that was hashed, so the client can recompute the root.
 
-## Architecture and profiles
+### Architecture and profiles
 
 The core is a general relay for non-human entities: identity (server-side personas), safety and
 receipts around any model. Gaming is the first profile and the one the examples use; a general
@@ -135,7 +151,7 @@ providers sit three optional extension points, a policy provider, a knowledge pr
 receipt sink, each with a built-in default so the relay runs alone. See
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Documents
+### Documents
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): the pieces, the request path, profiles, extension points
 - [PROVIDERS.md](PROVIDERS.md): every provider kind, its config, and its live-test status
@@ -145,7 +161,7 @@ receipt sink, each with a built-in default so the relay runs alone. See
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to add a provider, and the rules for changes
 - [examples/unreal](examples/unreal/README.md): an Unreal Engine 5 plugin example
 
-## Develop
+### Develop
 
 ```
 node --test                          # every test, on Node's built-in runner
@@ -157,3 +173,19 @@ node tools/deploy.mjs --dry-run      # what an upload would send, with no networ
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Copyright 2026 Saluca Labs.
+
+## Citation
+
+If you use nhe-relay in your work, please cite it as:
+
+```
+Saluca Labs. nhe-relay: an open, provider-pluggable relay for non-human entities. 2026.
+https://github.com/saluca-labs/nhe-relay
+```
+
+## Links
+
+- Repository: https://github.com/saluca-labs/nhe-relay
+- Issues: https://github.com/saluca-labs/nhe-relay/issues
+- Security reports: see [SECURITY.md](SECURITY.md)
+- For language models: [llms.txt](llms.txt)
