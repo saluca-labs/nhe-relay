@@ -5,10 +5,10 @@ a provider is called:
 
 1. **Kill switch.** `RELAY_ENABLED` ships `"no"`. Anything but exactly `"yes"` refuses every call.
 2. **Request limits.** Per session (6 a minute, 200 a day), per IP (20 a minute, 600 a day) and a
-   global daily ceiling across every route (5,000 in code; the shipped `wrangler.jsonc` narrows it
+   global daily ceiling across every route (5,000 in code; the shipped `deploy.config.js` narrows it
    to 500). Every well-formed attempt counts, including ones the injection screen refuses.
 3. **Spend ceiling.** A daily ceiling in US dollars (`spend.daily_usd_ceiling` in
-   `relay.config.json`, at most $25 in code, $2 as shipped; `SPEND_DAILY_USD` may narrow it
+   `relay.config.js`, at most $25 in code, $2 as shipped; `SPEND_DAILY_USD` may narrow it
    further). Before each paid provider call the relay reserves that call's worst-case cost. When
    the reservation would cross the ceiling, the provider is skipped; a later provider with a
    `flat` price can still answer. When every provider is skipped, the call returns
@@ -16,7 +16,7 @@ a provider is called:
 4. **Time.** Each provider has a timeout and each call a budget, so a slow provider costs a
    fallback line, not a hung request.
 
-Limits and ceilings are code constants in `src/limits.ts`. Configuration may only narrow them;
+Limits and ceilings are code constants in `src/limits.js`. Configuration may only narrow them;
 raising one is a code change.
 
 ## Prices are yours to declare
@@ -31,9 +31,9 @@ Every provider entry must carry a `price`, or the config does not load:
 | any | `{"flat": true}`: no marginal cost (a free tier or a flat-fee subscription) |
 
 The relay cannot read your bill, so the ceiling is only as good as these numbers. Check them
-against your provider's current price list. The prices in the shipped `relay.config.json` were
+against your provider's current price list. The prices in the shipped `relay.config.js` were
 read from Cloudflare's Workers AI pricing page on 2026-11-13; the ones in
-`examples/configs/all-providers.json` are placeholders.
+`examples/configs/all-providers.js` are placeholders.
 
 ## How the worst case is estimated
 

@@ -10,7 +10,7 @@ import { execFileSync } from "node:child_process";
 
 const files = execFileSync("git", ["ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean);
 const TEXT = /\.(ts|mjs|js|json|jsonc|md|sh|yml|yaml|cs|cpp|h|uplugin|txt)$|^(LICENSE|NOTICE|\.gitignore|\.gitattributes)$/;
-const SOURCE = /\.(ts|mjs|cs|cpp|h|sh)$/;
+const SOURCE = /\.(js|mjs|cs|cpp|h|sh)$/;
 const SELF = "tools/check-text.mjs";
 
 const RULES = [

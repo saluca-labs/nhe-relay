@@ -34,21 +34,22 @@ Nothing downstream of a refusal runs.
 
 | Piece | File | What it owns |
 |---|---|---|
-| Entry | `src/index.ts` | routing, CORS from the config, body size caps, `/v1/genesis`, `/health` |
-| Turn | `src/relay.ts` | the turn pipeline above, the kill switch, limits, spend hook |
-| Speech | `src/speech.ts` | `/v1/stt` (clip caps, transcript cleaning) and `/v1/tts` (ticket check, once-only) |
-| Judge | `src/judge.ts` | `/v1/judge`, evidence must be a verbatim quote |
-| Chain | `src/chain.ts` | canonical JSON, state roots, receipts, TTS tickets, keyed ids |
-| Safety | `src/safety.ts`, `src/scene.ts`, `src/memory.ts` | sanitising, injection screen, output check, `must_not_reveal`, client memory |
-| Personas | `src/personas.ts`, `personas/registry.json` | the server-side identity and the fixed frame |
-| Limits | `src/limits.ts`, `src/limiter-core.ts`, `src/limiter.ts` | code ceilings, weighted fixed-window counters in one Durable Object |
-| Config | `src/config.ts`, `relay.config.json` | strict validation; a config that fails to load refuses every call |
+| Entry | `src/index.js` | routing, CORS from the config, body size caps, `/v1/genesis`, `/health` |
+| Turn | `src/relay.js` | the turn pipeline above, the kill switch, limits, spend hook |
+| Speech | `src/speech.js` | `/v1/stt` (clip caps, transcript cleaning) and `/v1/tts` (ticket check, once-only) |
+| Judge | `src/judge.js` | `/v1/judge`, evidence must be a verbatim quote |
+| Chain | `src/chain.js` | canonical JSON, state roots, receipts, TTS tickets, keyed ids |
+| Safety | `src/safety.js`, `src/scene.js`, `src/memory.js` | sanitising, injection screen, output check, `must_not_reveal`, client memory |
+| Personas | `src/personas.js`, `personas/registry.js` | the server-side identity and the fixed frame |
+| Limits | `src/limits.js`, `src/limiter-core.js`, `src/limiter.js` | code ceilings, weighted fixed-window counters in one Durable Object |
+| Config | `src/config.js`, `relay.config.js` | strict validation; a config that fails to load refuses every call |
 | Providers | `src/providers/` | LLM, STT and TTS adapters and the chain runner |
 | Extensions | `src/extensions/` | policy, knowledge and receipt sink, with built-in defaults |
+| Deploy | `tools/deploy.mjs`, `deploy.config.js` | zero-dependency upload through the Cloudflare API (see DEPLOY.md) |
 
 ## Providers
 
-Three interfaces, one chain runner (`src/providers/run.ts`). The config lists providers of each
+Three interfaces, one chain runner (`src/providers/run.js`). The config lists providers of each
 kind in fallback order. For each call the runner checks the time budget, asks the policy,
 reserves the provider's worst-case cost against the daily spend ceiling, then calls the adapter
 with a hard timeout. An adapter maps every failure to one of `timeout`, `auth`, `rate_limited`,
@@ -104,7 +105,7 @@ for that turn, never a refusal and never a guess (`meta.knowledge: "unavailable"
 | Kind | Status |
 |---|---|
 | `none` (default) | No grounding. |
-| `local` | Built in. Passages per persona from `knowledge/lore.json`, ranked by word overlap. Tested. |
+| `local` | Built in. Passages per persona from `knowledge/lore.js`, ranked by word overlap. Tested. |
 | `mcp` | Any MCP server tool over Streamable HTTP (initialize, then `tools/call`). Unit-tested against a mocked server; untested live. |
 | `asphodel` | A preset of `mcp` for Asphodel Mindsets (`mindsets.asphodel.ai/mcp`), a commercial knowledge service reached over MCP. Optional; needs a token from Asphodel. Calls `recall` (one mindset per persona) or `ask`. Untested live. |
 

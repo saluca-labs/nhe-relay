@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Merge gate from salucallc/ci-shared, pinned by commit SHA (the same SHA in gate-ref).
 # It runs the secret scan over the full history, dependency audit, SAST, the claims check
-# (CLAIMS.md) and the Node CI (npm ci, typecheck, tests). The required check is 'gate / Merge gate all'.
+# (CLAIMS.md) and the Node CI (npm test, which is node --test; there is nothing to install). The required check is 'gate / Merge gate all'.
 name: merge-gate
 
 on:

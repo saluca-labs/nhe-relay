@@ -27,7 +27,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FNheHeardEvent, const FString&, Text
  *   when there is one, is sent on as a turn.
  * - With bSpeakReplies, each checked reply is fetched from /v1/tts and played. The relay voices
  *   only text it produced, so a reply is played only through its ticket. Playback expects WAV
- *   (16-bit PCM): set "format": "wav" on the TTS provider in relay.config.json.
+ *   (16-bit PCM): set "format": "wav" on the TTS provider in relay.config.js.
  */
 UCLASS(ClassGroup = (AI), meta = (BlueprintSpawnableComponent))
 class NHERELAY_API UNheRelayComponent : public UActorComponent

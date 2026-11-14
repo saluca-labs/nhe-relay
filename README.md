@@ -7,6 +7,12 @@ config file. The safety core stays the same whichever you pick.
 
 Part of NHE, Saluca's public standards program for non-human entities. Apache-2.0.
 
+**Zero dependencies.** No npm packages, no lockfile, no bundler, no build step. The Worker is
+plain modern JavaScript (ES modules) that runs on Cloudflare as written, with types in JSDoc
+comments. Tests run on Node's built-in runner, and deploys go straight to the Cloudflare API with a
+small script that uses Node's own `fetch`. You can read every line that runs, and there is no
+supply chain to audit beyond Node and Cloudflare themselves.
+
 > **Status: 0.1, early.** The relay core and every adapter are covered by unit tests with mocked
 > HTTP. **No adapter has been tested against its live service from this repository yet**; the
 > table in [PROVIDERS.md](PROVIDERS.md) says so per adapter, and will change only with a recorded
@@ -56,39 +62,40 @@ Full detail in [SECURITY.md](SECURITY.md).
 
 ## Quick deploy to your own Cloudflare account
 
-You need Node 20 or later and a Cloudflare account with Workers and Workers AI.
+You need Node 20 or later and a Cloudflare account with Workers and Workers AI. There is nothing
+to install.
 
 ```bash
 git clone https://github.com/saluca-labs/nhe-relay
 cd nhe-relay
-npm ci
-npm run check
-npm run cf:login
-npm run secret -- RELAY_HMAC_KEY
-npm run deploy
+node --test
+export CLOUDFLARE_ACCOUNT_ID=<your account id>
+export CLOUDFLARE_API_TOKEN=<a token with Workers Scripts edit>
+node tools/deploy.mjs
+openssl rand -hex 32 | node tools/deploy.mjs secret RELAY_HMAC_KEY
 ```
 
-`npm run check` runs the typecheck and tests. `npm run cf:login` signs Wrangler in to your
-account; in CI, set a scoped Cloudflare API token in the environment instead. At the
-`RELAY_HMAC_KEY` prompt, paste a random string of 32 or more characters (for example the output
-of `openssl rand -hex 32`). The first deploy keeps the kill switch on (`RELAY_ENABLED` is `"no"`),
-so `GET /health` reports `"enabled": false`. When you are ready to take traffic:
+`node --test` runs every test. `tools/deploy.mjs` uploads the Worker's modules and bindings
+through the Cloudflare API, reading the account id and token from the environment at call time;
+it never writes them anywhere. The first deploy keeps the kill switch on (`RELAY_ENABLED` is
+`"no"`), so `GET /health` reports `"enabled": false`. When you are ready to take traffic:
 
 ```bash
-npm run deploy:live
+node tools/deploy.mjs --live
 ```
 
-A plain `npm run deploy` turns the relay off again.
+A plain `node tools/deploy.mjs` turns the relay off again. Details, the token scopes, and how to
+use Wrangler instead if you prefer it: [DEPLOY.md](DEPLOY.md).
 
-The shipped `relay.config.json` uses Workers AI for all three (a Llama model, Whisper and Aura),
+The shipped `relay.config.js` uses Workers AI for all three (a Llama model, Whisper and Aura),
 so no third-party key is needed, and sets a $2 daily spend ceiling. To use other providers, edit
-`relay.config.json` (every kind is in `examples/configs/all-providers.json`) and add each secret
-it names with `npm run secret -- <NAME>`. Put your own characters in
-`personas/registry.json` and, if you want grounding, your lore in `knowledge/lore.json`. Add your
+`relay.config.js` (every kind is in `examples/configs/all-providers.js`) and add each secret
+it names with `node tools/deploy.mjs secret <NAME>`. Put your own characters in
+`personas/registry.js` and, if you want grounding, your lore in `knowledge/lore.js`. Add your
 game's web origin to `cors.origins`.
 
-Try it with [examples/http/curl.sh](examples/http/curl.sh), or the TypeScript client in
-[examples/http/client.ts](examples/http/client.ts).
+Try it with [examples/http/curl.sh](examples/http/curl.sh), or the JavaScript client in
+[examples/http/client.js](examples/http/client.js).
 
 ## API
 
@@ -134,16 +141,17 @@ receipt sink, each with a built-in default so the relay runs alone. See
 - [PROVIDERS.md](PROVIDERS.md): every provider kind, its config, and its live-test status
 - [COSTS.md](COSTS.md): how the spend ceiling works and what a turn costs
 - [SECURITY.md](SECURITY.md): threat model, guarantees and non-guarantees, reporting
+- [DEPLOY.md](DEPLOY.md): deploying with the zero-dependency tool, or with Wrangler
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to add a provider, and the rules for changes
 - [examples/unreal](examples/unreal/README.md): an Unreal Engine 5 plugin example
 
 ## Develop
 
 ```
-npm ci
-npm run check        # typecheck + vitest
-npm run mutants      # removes each guard in turn and expects a failing test
-npm run deploy:dry   # bundle only
+node --test                          # every test, on Node's built-in runner
+node tools/guard-mutations.mjs       # removes each guard in turn and expects a failing test
+node tools/check-text.mjs            # house text rules
+node tools/deploy.mjs --dry-run      # what an upload would send, with no network
 ```
 
 ## License

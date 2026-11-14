@@ -1,10 +1,10 @@
 # Providers
 
-Providers are listed in `relay.config.json` under `llm`, `stt` and `tts`, in fallback order.
+Providers are listed in `relay.config.js` under `llm`, `stt` and `tts`, in fallback order.
 Every entry has an `id` (lowercase, unique in its list), a `kind`, a `price` (required, see
 [COSTS.md](COSTS.md)) and an optional `timeout_ms` (default 4000, at most 15000). A key is
 never written in the config: `secret` names a Worker secret, which you set with
-`npm run secret -- <NAME>`. URLs must be https, with no query string.
+`node tools/deploy.mjs secret <NAME>`. URLs must be https, with no query string.
 
 A provider whose secret is missing is skipped, never called without its key. A config with an
 unknown field, an unknown kind, a missing price or a malformed URL does not load, and a relay
@@ -21,7 +21,7 @@ tested live yet.** This table changes only with a recorded live run.
 | llm | `workers-ai` | yes (mocked binding) | untested live |
 | llm | `ollama-cloud` | yes | untested live from this repository |
 | llm | `openrouter` | yes | untested live from this repository |
-| llm | `anthropic` | yes (official SDK, mocked fetch) | untested live |
+| llm | `anthropic` | yes | untested live |
 | llm | `openai-compatible` | yes | untested live |
 | stt | `workers-ai` | yes (mocked binding) | untested live |
 | stt | `deepgram` | yes | untested live |
@@ -43,10 +43,10 @@ to the next provider; if none parses, the turn is `output_shape`.
 
 | Kind | Fields | Notes |
 |---|---|---|
-| `workers-ai` | `model` | Through the `AI` binding in `wrangler.jsonc`. No key. |
+| `workers-ai` | `model` | Through the `AI` binding (`ai_binding` in `deploy.config.js`). No key. |
 | `ollama-cloud` | `model`, `secret` | `https://ollama.com/api/chat`, JSON format, thinking off. |
 | `openrouter` | `model`, `secret`, `free_only` (default true) | With `free_only`, a model id that does not end in `:free` is refused before any request. |
-| `anthropic` | `model` (default `claude-opus-5-5`), `secret`, `effort` (default `low`), `max_tokens` (default 2048), `fallbacks` (default true) | The official `@anthropic-ai/sdk` with the Worker's fetch and SDK retries off. Thinking cannot be disabled on this model family, so depth is set with `effort` and `max_tokens` leaves room for it. A `refusal` stop reason is an error, never a reply. With `fallbacks`, the request opts into the server-side fallback (`fallbacks: "default"`), which lets the API retry a declined request on another model within the same call. |
+| `anthropic` | `model` (default `claude-opus-5-5`), `secret`, `effort` (default `low`), `max_tokens` (default 2048), `fallbacks` (default true) | The Messages API over plain HTTP (`x-api-key`, `anthropic-version: 2026-10-21`), no SDK and no retries. Thinking cannot be disabled on this model family, so depth is set with `effort` and `max_tokens` leaves room for it. A `refusal` stop reason is an error, never a reply. With `fallbacks`, the request opts into the server-side fallback (`fallbacks: "default"`), which lets the API retry a declined request on another model within the same call. |
 | `openai-compatible` | `base_url`, `model`, `secret` (optional), `json_mode` (default true) | `POST {base_url}/chat/completions`. vLLM, llama.cpp server, LM Studio behind TLS, or a hosted gateway. |
 
 ## Speech to text
@@ -77,5 +77,5 @@ default; a persona can override it per provider id with `tts_voice` in the regis
 ## Adding a provider
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). In short: one file under `src/providers/<list>/`, a
-`kind` in `src/config.ts`, unit tests with mocked HTTP for the request, the response, every error
+`kind` in `src/config.js`, unit tests with mocked HTTP for the request, the response, every error
 kind and the timeout, and a row in the table above marked untested live.

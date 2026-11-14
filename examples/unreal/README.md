@@ -19,7 +19,7 @@ persona from an actor.
   turn.
 - **Playback.** With `bSpeakReplies`, each checked reply is fetched from `/v1/tts` with its ticket
   and played at the owner. Playback handles 16-bit PCM WAV only, so set `"format": "wav"` on your
-  TTS provider in `relay.config.json` (the shipped Workers AI config already does).
+  TTS provider in `relay.config.js` (the shipped Workers AI config already does).
 
 ## Use
 

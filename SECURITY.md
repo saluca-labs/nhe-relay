@@ -22,17 +22,17 @@ vulnerability. Include the version or commit, what an attacker can do, and how t
 
 | Guarantee | Where |
 |---|---|
-| A request cannot send or change a persona, system prompt, model, provider or limit | `src/relay.ts` (`parseRequest` refuses unknown fields) |
-| Player text, memory, scene, transcript lines and retrieved lore are data inside tags, sanitised, size-capped and screened for injection shapes and URLs | `src/safety.ts`, `src/memory.ts`, `src/scene.ts`, `src/extensions/index.ts` |
-| A reply that is too long, contains a URL, echoes the frame, matches the injection screen or reveals a `must_not_reveal` entry is never shown or spoken | `src/safety.ts` (`checkOutput`), `src/scene.ts` (`reveals`) |
-| The relay speaks only text it produced and checked, once per reply | `src/chain.ts` (TTS tickets), `src/speech.ts` |
-| Edited, dropped or reordered turns in the state a client returns are detected | `src/chain.ts` (state roots and receipts) |
-| Spend, request rates and the global total stop at code ceilings; configuration can only lower them | `src/limits.ts`, `src/limiter-core.ts`, `src/relay.ts` |
+| A request cannot send or change a persona, system prompt, model, provider or limit | `src/relay.js` (`parseRequest` refuses unknown fields) |
+| Player text, memory, scene, transcript lines and retrieved lore are data inside tags, sanitised, size-capped and screened for injection shapes and URLs | `src/safety.js`, `src/memory.js`, `src/scene.js`, `src/extensions/index.js` |
+| A reply that is too long, contains a URL, echoes the frame, matches the injection screen or reveals a `must_not_reveal` entry is never shown or spoken | `src/safety.js` (`checkOutput`), `src/scene.js` (`reveals`) |
+| The relay speaks only text it produced and checked, once per reply | `src/chain.js` (TTS tickets), `src/speech.js` |
+| Edited, dropped or reordered turns in the state a client returns are detected | `src/chain.js` (state roots and receipts) |
+| Spend, request rates and the global total stop at code ceilings; configuration can only lower them | `src/limits.js`, `src/limiter-core.js`, `src/relay.js` |
 | Unknown is a refusal: an unreadable limit, counter, key, config or policy refuses | throughout; see the tests named `cannot tell` and `unreadable` |
-| Logs hold counts, latencies, provider ids and reasons, never player text, transcripts, replies or session ids | `src/index.ts` (`log`), tests in `test/relay.test.ts` and `test/speech.test.ts` |
-| No key is ever in the repository or a request; providers read secrets by name at call time | `src/providers/http.ts` (`secret`), `src/config.ts` (secret names only) |
+| Logs hold counts, latencies, provider ids and reasons, never player text, transcripts, replies or session ids | `src/index.js` (`log`), tests in `test/relay.test.js` and `test/speech.test.js` |
+| No key is ever in the repository or a request; providers read secrets by name at call time | `src/providers/http.js` (`secret`), `src/config.js` (secret names only) |
 
-Each guard has a test that fails when the guard is removed: `npm run mutants` removes them one at
+Each guard has a test that fails when the guard is removed: `node tools/guard-mutations.mjs` removes them one at
 a time and expects a failing test for each.
 
 ## What it does not guarantee
@@ -58,11 +58,19 @@ a time and expects a failing test for each.
   `openai-compatible`, `mcp` or receipt sink URL is called with whatever secret you give it.
   Use TLS and a dedicated key.
 
+## Supply chain
+
+The relay has zero dependencies: no npm packages at runtime, for tests or for deploy. What runs on
+Cloudflare is the JavaScript in `src/` plus the data modules (`relay.config.js`,
+`personas/registry.js`, `knowledge/lore.js`), uploaded as written. The tests use Node's built-in
+runner and the deploy tool uses Node's built-in `fetch`. CI fails if a dependency, a lockfile or an
+import of a package appears.
+
 ## Secrets
 
 - `RELAY_HMAC_KEY` (required, 32 characters or more) signs receipts and TTS tickets and keys the
   rate-limit hashes. Rotating it restarts every session at genesis.
 - Each provider names its own secret. Use a dedicated key per provider with the smallest scope and
   the lowest spending limit the provider offers.
-- Set secrets with `wrangler secret put`. Never put a key in `relay.config.json`,
-  `wrangler.jsonc` or a request.
+- Set secrets with `node tools/deploy.mjs secret NAME` (or `wrangler secret put`). Never put a key
+  in `relay.config.js`, `deploy.config.js`, `wrangler.jsonc` or a request.

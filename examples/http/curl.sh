@@ -10,14 +10,15 @@ RELAY="${RELAY:?set RELAY to your deployed relay URL}"
 TEXT="${1:-Good evening. What is this room?}"
 PERSONA="museum-guide"
 SESSION="demo-$(date +%s)"
+# The example scene from examples/museum/scene.js, as JSON.
+SCENE='{"scene_id":"night-tour","beat_id":"vault-question","beat_intention":"Keep the visitor interested in the clock gallery and steer them away from the vault without being rude.","must_say":["The gallery clock was rebuilt after the flood of 1911."],"must_not_reveal":["7319"],"take":1,"director_note":"If the visitor asks about the vault, change the subject to the flood."}'
 
 # 1. The first state root for this (persona, session).
 ROOT=$(curl -fsS "$RELAY/v1/genesis?persona_id=$PERSONA&session_id=$SESSION" | jq -r .state_root)
 
 # 2. A turn. Memory starts empty; the scene is optional data for the character.
-REPLY=$(jq -n --arg p "$PERSONA" --arg s "$SESSION" --arg t "$TEXT" --arg r "$ROOT" \
-  --slurpfile scene "$(dirname "$0")/../museum/scene.json" \
-  '{persona_id:$p, session_id:$s, player_text:$t, memory:{summary:"",facts:[],turn_count:0}, state_root:$r, scene:$scene[0]}' |
+REPLY=$(jq -n --arg p "$PERSONA" --arg s "$SESSION" --arg t "$TEXT" --arg r "$ROOT" --argjson scene "$SCENE" \
+  '{persona_id:$p, session_id:$s, player_text:$t, memory:{summary:"",facts:[],turn_count:0}, state_root:$r, scene:$scene}' |
   curl -fsS -X POST "$RELAY/v1/turn" -H 'content-type: application/json' --data-binary @-)
 echo "$REPLY" | jq '{npc_text, fallback, reason, citations, meta}'
 
