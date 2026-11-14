@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+# Worker checks, with nothing to install: the tests on Node's built-in runner, the guard
+# mutations, the house text rules, a dependency-free check and a dry-run of the deploy upload.
+# Holds no Cloudflare token and deploys nothing.
+name: worker-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    name: Worker CI
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6.5.0
+        with:
+          node-version: 24
+      - name: Zero dependencies
+        run: |
+          node -e 'const p = require("./package.json"); const n = Object.keys({ ...p.dependencies, ...p.devDependencies, ...p.optionalDependencies, ...p.peerDependencies }).length; if (n) { console.error(n + " dependencies declared"); process.exit(1) }'
+          for f in package-lock.json npm-shrinkwrap.json yarn.lock pnpm-lock.yaml bun.lockb; do if [ -e "$f" ]; then echo "unexpected $f"; exit 1; fi; done
+          if grep -rhE "from ['\"][^./]" src tools test examples/http | grep -vE "from ['\"]node:"; then echo "import of a package"; exit 1; fi
+          if grep -rlE "from ['\"]node:" src; then echo "the Worker source must not import Node modules"; exit 1; fi
+      - run: node --test
+      - run: node tools/check-text.mjs
+      - run: node tools/guard-mutations.mjs
+      - run: node tools/deploy.mjs --dry-run > /dev/null

@@ -1,0 +1,19 @@
+{
+  "name": "nhe-relay",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Open, provider-pluggable relay for LLM-driven game characters and agents on Cloudflare Workers. Zero dependencies.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --test",
+    "mutants": "node tools/guard-mutations.mjs",
+    "lint:text": "node tools/check-text.mjs",
+    "deploy:dry": "node tools/deploy.mjs --dry-run",
+    "deploy": "node tools/deploy.mjs",
+    "deploy:live": "node tools/deploy.mjs --live",
+    "secret": "node tools/deploy.mjs secret"
+  }
+}

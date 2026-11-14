@@ -1,0 +1,25 @@
+// Optional: for people who prefer Wrangler. tools/deploy.mjs does the same with no install,
+// from deploy.config.js; a test keeps the two in agreement.
+{
+  "name": "nhe-relay",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  // Workers AI binding: used by every provider of kind "workers-ai". Remove it if you use none.
+  "ai": { "binding": "AI" },
+  "durable_objects": {
+    "bindings": [{ "name": "LIMITER", "class_name": "Limiter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Limiter"] }],
+  "vars": {
+    // Kill switch. Anything but exactly "yes" makes every call return fallback:true.
+    // It ships OFF; turn it on with `wrangler deploy --var RELAY_ENABLED:yes`.
+    "RELAY_ENABLED": "no",
+    // Narrowing only: values above the constants in src/limits.js are refused.
+    "GLOBAL_DAILY_CEILING": "500"
+  }
+  // Secrets (names only): RELAY_HMAC_KEY (required, 32 or more characters), plus whatever secret
+  // names relay.config.js gives its providers (for example ANTHROPIC_API_KEY).
+}
