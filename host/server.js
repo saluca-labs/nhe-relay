@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Saluca Labs
 
 // Node entry point: runs the relay as a self-hosted HTTP server.
@@ -8,7 +8,7 @@
 // env object, and provides a LocalLimiter in place of the Durable Object binding.
 //
 // Usage:
-//   node src/server.js [--port 8787] [--host 127.0.0.1]
+//   node host/server.js [--port 8787] [--host 127.0.0.1]
 //
 // Required environment:
 //   RELAY_HMAC_KEY  - 32+ character HMAC key (secret, never printed)
@@ -18,8 +18,8 @@
 // The config file (relay.config.js) names which secret each provider needs.
 
 import http from "node:http";
-import workerDefault from "./index.js";
-import { LocalLimiter } from "./local-limiter.js";
+import workerDefault from "../src/index.js";
+import { LocalLimiter } from "../src/local-limiter.js";
 
 /**
  * Build the env object from process.env. Worker bindings (LIMITER, AI) are replaced by
@@ -171,7 +171,7 @@ export function startServer(opts = {}) {
     return server;
 }
 
-// When run directly (node src/server.js), start the server.
+// When run directly (node host/server.js), start the server.
 // import.meta.url check for dual ESM/test compatibility.
 if (import.meta.url === `file://${process.argv[1]}`) {
     startServer();

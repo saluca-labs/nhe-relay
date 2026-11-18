@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Saluca Labs
 
 // In-process limiter for self-hosted (Node) deployments. The Cloudflare Worker uses a Durable

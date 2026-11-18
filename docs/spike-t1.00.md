@@ -1,4 +1,4 @@
-﻿# Spike Report T1.00: Self-hosted nhe-relay for per-employee agents
+# Spike Report T1.00: Self-hosted nhe-relay for per-employee agents
 
 **Task T1.00 (M1, W3) | The Atom | 2026-11-18**
 
@@ -11,7 +11,7 @@ and receipts into the audit chain. Scope the tool-call extension the product wil
 
 ## What was built
 
-### 1. Node server entry point (`src/server.js`)
+### 1. Node server entry point (`host/server.js`)
 
 The Worker entry (`src/index.js`) exports `default { async fetch(request, env) }`. The Node
 server wraps that handler for a self-hosted process:
@@ -25,7 +25,7 @@ server wraps that handler for a self-hosted process:
   (`env.LIMITER.get(env.LIMITER.idFromName("global")).fetch(...)`) with an in-process limiter.
 - IP extraction: `cf-connecting-ip` is absent on a direct Node server, so the server falls
   back to `x-forwarded-for` (first hop) or `req.socket.remoteAddress`.
-- `node src/server.js` starts the server. `PORT` and `HOST` env vars or `--port`/`--host`
+- `node host/server.js` starts the server. `PORT` and `HOST` env vars or `--port`/`--host`
   flags configure the listen address. Default: `127.0.0.1:8787`.
 
 The zero-dependency principle is preserved: the server uses only Node built-ins
@@ -225,7 +225,7 @@ is Tiresias's decision API (W4), not the relay.
 ## Files changed
 
 - `src/local-limiter.js` (new): in-process limiter for Node deployments
-- `src/server.js` (new): Node HTTP server entry point
+- `host/server.js` (new): Node HTTP server entry point
 - `test/server.test.js` (new): 7 tests for the Node server
 - `test/isolation.test.js` (new): 7 tests for multi-employee isolation
 - `test/audit-chain.test.js` (new): 4 tests for receipt audit chain
@@ -235,6 +235,6 @@ is Tiresias's decision API (W4), not the relay.
 
 ```bash
 node --test                                    # 203 tests, 0 failures
-node src/server.js                             # starts on 127.0.0.1:8787
+node host/server.js                             # starts on 127.0.0.1:8787
 curl http://127.0.0.1:8787/health              # {"ok":true,"service":"nhe-relay",...}
 ```

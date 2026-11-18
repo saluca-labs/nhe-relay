@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Saluca Labs
 
 // T1.00: Receipts into the audit chain. The relay emits a receipt after every turn through its

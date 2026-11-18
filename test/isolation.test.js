@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Saluca Labs
 
 // T1.00: Multi-employee isolation. In the per-employee agent product, each employee has their
@@ -6,7 +6,7 @@
 //
 //   1. Chain isolation: employee A cannot use employee B's receipt to advance a turn.
 //   2. Limiter isolation: employee A's rate limit does not consume employee B's budget.
-//   3. MCP knowledge grants: persona A retrieves from mindset "set-a", persona B from "set-b".
+//   3. MCP knowledge grants: persona A retrieves from mindset set-a, persona B from set-b.
 //      The MCP retriever's persona_args must produce different arguments per persona.
 
 import { describe, it, expect } from "./expect.js";

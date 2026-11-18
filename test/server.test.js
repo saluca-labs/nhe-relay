@@ -1,8 +1,8 @@
-﻿// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Saluca Labs
 
 import { describe, it, expect } from "./expect.js";
-import { buildEnv, makeLimiterBinding, toRequest, createServer } from "../src/server.js";
+import { buildEnv, makeLimiterBinding, toRequest, createServer } from "../host/server.js";
 import { LocalLimiter } from "../src/local-limiter.js";
 import { genesis } from "../src/chain.js";
 import { env as testEnv, HMAC } from "./helpers.js";
