@@ -1,0 +1,12 @@
+{
+  "_comment": "Claude Code MCP server config. Place at .claude/mcp.json in the project root, or merge into ~/.claude/settings.json. Replace RELAY_URL with the customer relay address and TOKEN with the bearer from /v1/login.",
+  "mcpServers": {
+    "saluca-relay": {
+      "type": "url",
+      "url": "https://relay.customer.internal/mcp",
+      "headers": {
+        "Authorization": "Bearer REPLACE_WITH_LOGIN_TOKEN"
+      }
+    }
+  }
+}
