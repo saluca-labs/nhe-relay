@@ -41,13 +41,14 @@ function deps(over = {}) {
 }
 
 describe("tool catalog", () => {
-  it("exposes 6 tools across soul, knowledge and tiresias backends", () => {
-    expect(TOOLS.length).toBe(6);
+  it("exposes 7 tools across soul, knowledge and tiresias backends", () => {
+    expect(TOOLS.length).toBe(7);
     const names = toolNames();
     expect(names).toContain("soul.session_init");
     expect(names).toContain("soul.memory_search");
     expect(names).toContain("soul.memory_write");
     expect(names).toContain("soul.identity");
+    expect(names).toContain("soul.walkthrough");
     expect(names).toContain("knowledge.recall");
     expect(names).toContain("tiresias.policy_check");
   });
@@ -153,7 +154,7 @@ describe("MCP server: tools/list", () => {
       deps({ headers: h })
     );
     expect(r.status).toBe(200);
-    expect(r.body.result.tools.length).toBe(6);
+    expect(r.body.result.tools.length).toBe(7);
     expect(r.body.result.tools[0].name).toBe("soul.session_init");
   });
 
