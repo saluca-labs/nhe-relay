@@ -1,5 +1,3 @@
-# OpenCode MCP server config. Merge into the opencode.json config file.
-# Replace RELAY_URL with the customer relay address and TOKEN with the bearer from /v1/login.
 {
   "mcp": {
     "saluca-relay": {

@@ -13,7 +13,7 @@ import { genesis } from "./chain.js";
 import { registry, isPersonaId } from "./personas.js";
 import { SESSION_RE } from "./relay.js";
 import configJson from "../relay.config.js";
-import { handleLogin, handleMcp } from "./harness/mcp-server.js";
+import { handleLogin, handleMcp, authOnlyHeaders } from "./harness/mcp-server.js";
 export { Limiter } from "./limiter.js";
 export const VERSION = "0.1.0";
 let cached = null;
@@ -147,7 +147,7 @@ export default {
             }
             const r = await handleMcp(body, env, {
                 harness: config?.harness ?? null,
-                headers: request.headers,
+                headers: authOnlyHeaders(request.headers),
                 fetcher: (u, init) => fetch(u, init),
                 env,
                 now: Date.now,

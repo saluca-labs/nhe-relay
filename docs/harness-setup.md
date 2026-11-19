@@ -95,7 +95,7 @@ Merge into the OpenCode config file:
 }
 ```
 
-Template: `examples/harness/opencode.json`
+Template: `examples/harness/opencode.json` (plain JSON, so it can be validated and parsed; merge its `mcp` entry into your own `opencode.json`, replace the URL with the customer relay address and `REPLACE_WITH_LOGIN_TOKEN` with the bearer from `/v1/login`)
 
 ### Codex CLI
 

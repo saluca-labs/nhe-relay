@@ -21,6 +21,20 @@ const SERVER_INFO = { name: "nhe-relay", version: "0.1.0" };
 const SERVER_CAPS = { tools: { listChanged: false } };
 
 /**
+ * The only incoming header the MCP route needs: the employee's bearer, read here to verify it
+ * locally. It is returned as a plain object holding that one header and nothing else, so the
+ * incoming request's Cookie, X-* credential headers and the like never travel further, and
+ * the employee's bearer is never forwarded upstream (the relay authenticates upstream with its
+ * own credential). An explicit allowlist of one, not a copy of the request's headers.
+ * @param {Headers | undefined} incoming
+ * @param {string} [name]
+ */
+export function authOnlyHeaders(incoming, name = "authorization") {
+  const value = incoming?.get?.(name);
+  return value ? { [name]: value } : {};
+}
+
+/**
  * Handle POST /v1/login.
  * Body: { employee_id, credential }
  * The credential is the value of the env var named in the employee config entry.
@@ -110,7 +124,7 @@ export async function handleMcp(request, env, deps) {
 
   // all other methods require a valid bearer token
   const authHeader = deps.authHeader ?? "authorization";
-  const token = extractBearer(deps.headers?.get(authHeader) ?? deps.headers?.[authHeader] ?? "");
+  const token = extractBearer(deps.headers?.get?.(authHeader) ?? deps.headers?.[authHeader] ?? "");
   const identity = token ? await verifyToken(env.RELAY_HMAC_KEY, token, deps.now ? deps.now() : undefined) : null;
   if (!identity)
     return { status: 401, body: { jsonrpc: "2.0", id, error: { code: -32001, message: "unauthorized" } } };
