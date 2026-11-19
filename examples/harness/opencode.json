@@ -1,0 +1,11 @@
+{
+  "mcp": {
+    "saluca-relay": {
+      "type": "streamableHttp",
+      "url": "https://relay.customer.internal/mcp",
+      "headers": {
+        "Authorization": "Bearer REPLACE_WITH_LOGIN_TOKEN"
+      }
+    }
+  }
+}

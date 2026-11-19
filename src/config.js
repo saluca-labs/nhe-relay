@@ -10,6 +10,7 @@
 // ("config_unreadable"): a half-read config is unknown, and unknown is a refusal.
 
 import { LIMITS } from "./limits.js";
+import { loadHarnessConfig } from "./harness/config.js";
 import { workersAiLlm } from "./providers/llm/workers-ai.js";
 import { ollamaCloudLlm } from "./providers/llm/ollama-cloud.js";
 import { openRouterLlm } from "./providers/llm/openrouter.js";
@@ -218,7 +219,7 @@ function list(o, k, f) {
 const ORIGIN_RE = /^https:\/\/[a-z0-9.-]+(?::[0-9]{1,5})?$/;
 export function loadConfig(raw) {
     const o = obj(raw, "config");
-    only(o, ["_note", "llm", "stt", "tts", "turn_budget_ms", "max_output_tokens", "spend", "cors", "policy", "knowledge", "receipts"], "config");
+    only(o, ["_note", "llm", "stt", "tts", "turn_budget_ms", "max_output_tokens", "spend", "cors", "policy", "knowledge", "receipts", "harness"], "config");
     const spend = obj(o.spend, "spend");
     only(spend, ["daily_usd_ceiling"], "spend");
     const ceiling = spend.daily_usd_ceiling;
@@ -244,6 +245,7 @@ export function loadConfig(raw) {
         policy: policyEntry(o.policy),
         knowledge: knowledgeEntry(o.knowledge),
         receipts: receiptsEntry(o.receipts),
+        harness: loadHarnessConfig(o.harness),
     };
 }
 const ARG_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;

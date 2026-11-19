@@ -1,0 +1,8 @@
+# Codex CLI MCP server config. Merge into ~/.codex/config.toml.
+# Replace RELAY_URL with the customer relay address and TOKEN with the bearer from /v1/login.
+[mcp_servers.saluca-relay]
+type = "streamable-http"
+url = "https://relay.customer.internal/mcp"
+
+[mcp_servers.saluca-relay.headers]
+Authorization = "Bearer REPLACE_WITH_LOGIN_TOKEN"
