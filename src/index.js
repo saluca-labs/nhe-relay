@@ -13,6 +13,7 @@ import { genesis } from "./chain.js";
 import { registry, isPersonaId } from "./personas.js";
 import { SESSION_RE } from "./relay.js";
 import configJson from "../relay.config.js";
+import { handleLogin, handleMcp } from "./harness/mcp-server.js";
 export { Limiter } from "./limiter.js";
 export const VERSION = "0.1.0";
 let cached = null;
@@ -118,6 +119,42 @@ export default {
                 });
             }
             const r = route === "turn" ? await handleTurn(body, ip, env, deps) : await handleJudge(body, ip, env, deps);
+            return json(r.status, r.body, origin, cors);
+        }
+        // Harness routes: employee login and MCP server endpoint (D20).
+        if (url.pathname === "/v1/login" && request.method === "POST") {
+            const raw = await readCapped(request, LIMITS.maxBodyBytes);
+            if (!raw)
+                return json(413, { error: "body_size" }, origin, cors);
+            let body;
+            try {
+                body = JSON.parse(new TextDecoder().decode(raw));
+            } catch {
+                return json(400, { error: "body_json" }, origin, cors);
+            }
+            const r = await handleLogin(body, env, { harness: config?.harness ?? null, now: Date.now });
+            return json(r.status, r.body, origin, cors);
+        }
+        if (url.pathname === "/mcp" && request.method === "POST") {
+            const raw = await readCapped(request, LIMITS.maxBodyBytes);
+            if (!raw)
+                return json(413, { jsonrpc: "2.0", error: { code: -32600, message: "body_size" } }, origin, cors);
+            let body;
+            try {
+                body = JSON.parse(new TextDecoder().decode(raw));
+            } catch {
+                return json(400, { jsonrpc: "2.0", error: { code: -32700, message: "parse_error" } }, origin, cors);
+            }
+            const r = await handleMcp(body, env, {
+                harness: config?.harness ?? null,
+                headers: request.headers,
+                fetcher: (u, init) => fetch(u, init),
+                env,
+                now: Date.now,
+                log,
+            });
+            if (r.body === null)
+                return new Response(null, { status: r.status });
             return json(r.status, r.body, origin, cors);
         }
         return json(404, { fallback: true, reason: "not_found" }, origin, cors);
