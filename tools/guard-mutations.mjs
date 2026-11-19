@@ -41,6 +41,13 @@ const MUTANTS = [
   { name: "plan P6: event accepted from the wrong party", file: "src/harness/plan.js", from: 'if (event.by !== expectedBy) throw new PlanError(`${event.type} must come from ${fromEmployee ? "the plan\'s employee" : "the plan\'s agent"}`);', to: "" },
   { name: "plan P7: history root check removed", file: "src/harness/plan.js", from: "if (plan.root !== (await nextRoot(prevRoot, plan.event))) return { ok: false, reason: `revision_${i}_root` };", to: "" },
   { name: "plan P8: gated step left off the proposals", file: "src/harness/plan.js", from: "return steps.filter((s) => s.gated).map((s) => s.id);", to: "return steps.filter((s) => s.gated && s.action !== \"deploy\").map((s) => s.id);" },
+  { name: "workspace W1: workspace_id derived from task_id only", file: "src/harness/workspace.js", from: 'return sha256Hex(enc.encode(entityId + "\\u0000" + taskId));', to: 'return sha256Hex(enc.encode(taskId));' },
+  { name: "workspace W2: cleanWorkspace allows re-cleaning", file: "src/harness/workspace.js", from: 'if (plan.status !== STATUS_ACTIVE)\n    throw new WorkspaceError("workspace is already cleaned");', to: "" },
+  { name: "workspace W3: reuseLeftover accepts unpushed_commits > 0", file: "src/harness/workspace.js", from: 'if (opts.unpushed_commits > 0)\n    throw new WorkspaceError("workspace has " + opts.unpushed_commits + " unpushed commits");', to: "" },
+  { name: "workspace W4: reuseLeftover accepts uncommitted_changes === true", file: "src/harness/workspace.js", from: 'if (opts.uncommitted_changes !== false)\n    throw new WorkspaceError("workspace has uncommitted changes");', to: "" },
+  { name: "workspace W5: reuseLeftover accepts undefined unpushed_commits", file: "src/harness/workspace.js", from: 'if (typeof opts.unpushed_commits !== "number" || !Number.isSafeInteger(opts.unpushed_commits) || opts.unpushed_commits < 0)\n    throw new WorkspaceError("unpushed_commits must be a non-negative integer");', to: "" },
+  { name: "workspace W6: reuseLeftover accepts wrong entity_id", file: "src/harness/workspace.js", from: 'if (plan.entity_id !== opts.entity_id)\n    throw new WorkspaceError("workspace belongs to another entity");', to: "" },
+  { name: "workspace W7: reuseLeftover accepts a cleaned workspace", file: "src/harness/workspace.js", from: 'if (plan.status !== STATUS_ACTIVE)\n    throw new WorkspaceError("workspace is not active: already cleaned");', to: "" },
   { name: "anthropic refusal becomes a reply", file: "src/providers/llm/anthropic.js", from: 'if (msg?.stop_reason === "refusal") throw new ProviderError("refused", msg.stop_details?.category ?? "");', to: "" },
 ];
 
