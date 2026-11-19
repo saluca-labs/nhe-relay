@@ -100,6 +100,47 @@ export const TOOLS = [
     }
   },
   {
+    name: "soul.plan_post",
+    description: "Post a plan before work starts (D21 item 2). The employee comments on it inline and presses Proceed through the approval surface. Each step names an action; gated actions (send, publish, schedule, deploy, push, merge, delete, pay, file, submit, external_write, queued_action) become proposals, a decision card each, and are listed up front. An unmapped action is refused. Proceed releases only the ungated steps.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string", description: "The task identifier, e.g. T3.07" },
+        summary: { type: "string", description: "What the plan sets out to do" },
+        steps: {
+          type: "array",
+          description: "The planned steps, in order",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string", description: "Step id, 1-32 of A-Z a-z 0-9 _ -" },
+              text: { type: "string", description: "What the step does" },
+              action: { type: "string", description: "read, search, analyze, edit, test, draft (ungated) or a gated action" },
+              gated: { type: "boolean", description: "Mark an ungated step as gated. A gated action can never be marked ungated." }
+            },
+            required: ["id", "text", "action"]
+          }
+        }
+      },
+      required: ["task_id", "summary", "steps"]
+    }
+  },
+  {
+    name: "soul.plan_revise",
+    description: "Revise a posted plan (D21 item 2), answering the employee's open comments. Pass the current sealed revision and its receipt; the relay verifies them and returns the next revision, chained to the last. Summary and steps default to the current ones.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        plan: { type: "object", description: "The current sealed plan revision" },
+        receipt: { type: "string", description: "The receipt of the current revision" },
+        summary: { type: "string", description: "The revised summary" },
+        steps: { type: "array", items: { type: "object" }, description: "The revised steps" },
+        answers: { type: "array", items: { type: "string" }, description: "Ids of the open comments this revision answers, e.g. c1" }
+      },
+      required: ["plan", "receipt"]
+    }
+  },
+  {
     name: "knowledge.recall",
     description: "Retrieve passages from the curated company knowledge sets (Asphodel). Context-only or content+context depending on entity grants.",
     inputSchema: {

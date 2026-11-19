@@ -33,6 +33,14 @@ const MUTANTS = [
   { name: "CORS admits any origin", file: "src/cors.js", from: "if (policy.origins.includes(origin)) return true;", to: "return true;" },
   { name: "config accepts a missing price", file: "src/config.js", from: 'const p = obj(o.price, `${where}.price`);', to: 'const p = (o.price ?? { flat: true });' },
   { name: "openrouter free-only check removed", file: "src/providers/llm/openrouter.js", from: 'if (e.freeOnly && !e.model.endsWith(":free")) throw new ProviderError("config", "not_free");', to: "" },
+  { name: "plan P1: unmapped action defaults to ungated", file: "src/harness/plan.js", from: "throw new PlanError(`unmapped step action: ${action}`);", to: "return false;" },
+  { name: "plan P2: agent may ungate a gated action", file: "src/harness/plan.js", from: "if (actionGated && s.gated === false) throw new PlanError(`step ${s.id}: a ${s.action} step is gated and cannot be marked ungated`);", to: "" },
+  { name: "plan P3: Proceed releases gated steps", file: "src/harness/plan.js", from: "return plan.steps.filter((s) => s.gated === false).map((s) => s.id);", to: "return plan.steps.map((s) => s.id);" },
+  { name: "plan P4: stale Proceed accepted", file: "src/harness/plan.js", from: 'if (event.seen_digest !== ctx.prevDigest) throw new PlanError("stale proceed: the plan changed after the revision you saw");', to: "" },
+  { name: "plan P5: Proceed with unanswered comments", file: "src/harness/plan.js", from: "if (state.open_comments.length > 0) throw new PlanError(`cannot proceed: comments not yet answered by a revision: ${state.open_comments.join(\", \")}`);", to: "" },
+  { name: "plan P6: event accepted from the wrong party", file: "src/harness/plan.js", from: 'if (event.by !== expectedBy) throw new PlanError(`${event.type} must come from ${fromEmployee ? "the plan\'s employee" : "the plan\'s agent"}`);', to: "" },
+  { name: "plan P7: history root check removed", file: "src/harness/plan.js", from: "if (plan.root !== (await nextRoot(prevRoot, plan.event))) return { ok: false, reason: `revision_${i}_root` };", to: "" },
+  { name: "plan P8: gated step left off the proposals", file: "src/harness/plan.js", from: "return steps.filter((s) => s.gated).map((s) => s.id);", to: "return steps.filter((s) => s.gated && s.action !== \"deploy\").map((s) => s.id);" },
   { name: "anthropic refusal becomes a reply", file: "src/providers/llm/anthropic.js", from: 'if (msg?.stop_reason === "refusal") throw new ProviderError("refused", msg.stop_details?.category ?? "");', to: "" },
 ];
 

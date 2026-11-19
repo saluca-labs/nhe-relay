@@ -19,6 +19,7 @@ import { findEmployee } from "./config.js";
 import { hasGrant } from "./grants.js";
 import { keyedId, issueReceipt } from "../chain.js";
 import { createWalkthrough } from "./walkthrough.js";
+import { createPlan, revisePlan, proposalCards } from "./plan.js";
 
 const SERVER_INFO = { name: "nhe-relay", version: "0.1.0" };
 const SERVER_CAPS = { tools: { listChanged: false } };
@@ -344,6 +345,43 @@ async function handleWalkthrough(args, env, identity) {
 }
 
 /**
+ * Handle soul.plan_post and soul.plan_revise locally (D21 item 2). The agent identity comes
+ * from the bearer token, never from the arguments, so an agent can only post or revise as
+ * itself. The relay stores nothing; the caller keeps each sealed revision and receipt.
+ */
+async function handlePlan(toolName, args, env, identity) {
+  const hmacKey = env.RELAY_HMAC_KEY;
+  if (typeof hmacKey !== "string" || hmacKey.length === 0)
+    throw new Error("RELAY_HMAC_KEY not configured");
+
+  let sealed;
+  if (toolName === "soul.plan_post") {
+    sealed = await createPlan(hmacKey, {
+      employeeId: identity.employeeId,
+      entityId: identity.entityId,
+      task_id: args.task_id,
+      summary: args.summary,
+      steps: args.steps
+    });
+  } else {
+    if (args.plan?.entity_id !== identity.entityId)
+      throw new Error("plan belongs to another entity");
+    sealed = await revisePlan(hmacKey, args.plan, args.receipt, {
+      entityId: identity.entityId,
+      summary: args.summary,
+      steps: args.steps,
+      answers: args.answers
+    });
+  }
+
+  const out = { plan: sealed.plan, receipt: sealed.receipt, proposals: proposalCards(sealed.plan) };
+  return {
+    structuredContent: out,
+    content: [{ type: "text", text: JSON.stringify(out) }]
+  };
+}
+
+/**
  * Dispatch a tool call to the configured backend. Each backend is reached over HTTP.
  * The relay proxies to soul-svc (its MCP endpoint) or Asphodel (its MCP endpoint).
  * For tiresias.policy_check, the relay calls the Tiresias policy API directly.
@@ -354,6 +392,11 @@ async function dispatchTool(toolName, args, env, deps, identity, harness) {
   // relay's chain, not the soul backend.
   if (toolName === "soul.walkthrough") {
     return await handleWalkthrough(args, env, identity);
+  }
+  // soul.plan_post and soul.plan_revise are handled locally for the same reason: the plan
+  // is sealed into the relay's own chain. Comment and Proceed are not harness tools.
+  if (toolName === "soul.plan_post" || toolName === "soul.plan_revise") {
+    return await handlePlan(toolName, args, env, identity);
   }
   if (toolName.startsWith("soul.")) {
     return await callSoulBackend(toolName, args, env, deps, identity, harness);
