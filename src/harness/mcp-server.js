@@ -8,13 +8,15 @@
 // Every tools/call is:
 //   1. Authenticated: the bearer token resolves to an employee and entity identity.
 //   2. Policy-checked: Tiresias decides allow or deny before the backend is called.
-//   3. Receipted: the relay issues a chained receipt (HMAC over the call), per D20.
+//   3. Grant-checked: the employee's grants must authorise the requested tool.
+//   4. Receipted: the relay issues a chained receipt (HMAC over the call), per D20.
 //
 // Methods: initialize, notifications/initialized, tools/list, tools/call.
 
 import { issueToken, verifyToken, extractBearer } from "./login.js";
 import { TOOLS, findTool, PROTOCOL_VERSION } from "./tools.js";
 import { findEmployee } from "./config.js";
+import { hasGrant } from "./grants.js";
 import { keyedId, issueReceipt } from "../chain.js";
 
 const SERVER_INFO = { name: "nhe-relay", version: "0.1.0" };
@@ -186,6 +188,24 @@ async function handleToolCall(rpc, env, deps, identity, harness) {
         result: {
           isError: true,
           content: [{ type: "text", text: `Policy denied: ${policyDecision.reason}` }],
+          _meta: { receipt }
+        }
+      }
+    };
+  }
+
+  // 1b. Grant check: the employee's grants must authorise this tool.
+  const emp = findEmployee(harness, identity.employeeId);
+  if (!emp || !hasGrant(emp.grants, toolName)) {
+    const receipt = await receiptFor(env, deps, identity, toolName, "denied");
+    return {
+      status: 200,
+      body: {
+        jsonrpc: "2.0",
+        id,
+        result: {
+          isError: true,
+          content: [{ type: "text", text: "Grant denied: employee lacks grant for " + toolName }],
           _meta: { receipt }
         }
       }
