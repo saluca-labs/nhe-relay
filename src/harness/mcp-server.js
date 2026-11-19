@@ -18,6 +18,7 @@ import { TOOLS, findTool, PROTOCOL_VERSION } from "./tools.js";
 import { findEmployee } from "./config.js";
 import { hasGrant } from "./grants.js";
 import { keyedId, issueReceipt } from "../chain.js";
+import { createWalkthrough } from "./walkthrough.js";
 
 const SERVER_INFO = { name: "nhe-relay", version: "0.1.0" };
 const SERVER_CAPS = { tools: { listChanged: false } };
@@ -311,12 +312,49 @@ async function receiptFor(env, deps, identity, toolName, outcome) {
   return receipt;
 }
 
+
+/**
+ * Handle soul.walkthrough locally (D21 item 1). Creates a sealed walkthrough artifact
+ * with a digest over its content and an HMAC receipt tying it to the relay key. The
+ * artifact is returned to the caller; the relay stores nothing.
+ *
+ * If the evidence block is empty, the outcome is forced to "no_evidence", and
+ * isDone("no_evidence") is false, so a task with no evidence is never reported as done.
+ */
+async function handleWalkthrough(args, env, identity) {
+  const hmacKey = env.RELAY_HMAC_KEY;
+  if (typeof hmacKey !== "string" || hmacKey.length === 0)
+    throw new Error("RELAY_HMAC_KEY not configured");
+
+  const { artifact, receipt } = await createWalkthrough(hmacKey, {
+    employeeId: identity.employeeId,
+    entityId: identity.entityId,
+    task_id: args.task_id,
+    summary: args.summary,
+    files_touched: args.files_touched,
+    command_output: args.command_output,
+    turn_receipts: args.turn_receipts,
+    requested_outcome: args.requested_outcome
+  });
+
+  return {
+    structuredContent: { artifact, receipt },
+    content: [{ type: "text", text: JSON.stringify({ artifact, receipt }) }]
+  };
+}
+
 /**
  * Dispatch a tool call to the configured backend. Each backend is reached over HTTP.
  * The relay proxies to soul-svc (its MCP endpoint) or Asphodel (its MCP endpoint).
  * For tiresias.policy_check, the relay calls the Tiresias policy API directly.
  */
 async function dispatchTool(toolName, args, env, deps, identity, harness) {
+  // soul.walkthrough is handled locally: the relay seals the artifact into its own
+  // chain. It is not forwarded to soul-svc, because the walkthrough is about the
+  // relay's chain, not the soul backend.
+  if (toolName === "soul.walkthrough") {
+    return await handleWalkthrough(args, env, identity);
+  }
   if (toolName.startsWith("soul.")) {
     return await callSoulBackend(toolName, args, env, deps, identity, harness);
   }

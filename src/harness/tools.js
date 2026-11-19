@@ -84,6 +84,22 @@ export const TOOLS = [
     }
   },
   {
+    name: "soul.walkthrough",
+    description: "Submit a task walkthrough artifact with evidence (D21). Every agent task ends with a walkthrough: a summary, files touched, command output, and turn receipt links. The artifact is hashed into the turn chain with an HMAC receipt. A task with no evidence is marked no_evidence and is never reported as done.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string", description: "The task identifier, e.g. T3.05" },
+        summary: { type: "string", description: "A summary of what was done" },
+        files_touched: { type: "array", items: { type: "string" }, description: "Paths of files modified or created" },
+        command_output: { type: "string", description: "Test or build output as evidence" },
+        turn_receipts: { type: "array", items: { type: "string" }, description: "HMAC receipt hex strings from tool calls in this task" },
+        requested_outcome: { type: "string", description: "Requested outcome: done, blocked, or no_evidence. Forced to no_evidence when evidence is empty." }
+      },
+      required: ["task_id", "summary"]
+    }
+  },
+  {
     name: "knowledge.recall",
     description: "Retrieve passages from the curated company knowledge sets (Asphodel). Context-only or content+context depending on entity grants.",
     inputSchema: {
