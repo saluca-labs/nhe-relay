@@ -52,7 +52,7 @@ function validateEmployee(raw, i) {
   const credential = str(o.credential, `${where}.credential`, SECRET_RE);
   const grants = o.grants;
   if (grants !== undefined) {
-    if (!Array.isArray(grants) || grants.length === 0 || !grants.every(g => typeof g === "string" && /^[a-z0-9.*-]+$/.test(g)))
+    if (!Array.isArray(grants) || grants.length === 0 || !grants.every(g => typeof g === "string" && /^[a-z0-9._*-]+$/.test(g)))
       fail(`${where}.grants`, "must be a non-empty array of grant strings");
   }
   return { id, entityId, credential, grants: grants ?? ["*"] };
