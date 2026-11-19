@@ -20,6 +20,7 @@ import { hasGrant } from "./grants.js";
 import { keyedId, issueReceipt } from "../chain.js";
 import { createWalkthrough } from "./walkthrough.js";
 import { createPlan, revisePlan, proposalCards } from "./plan.js";
+import { createWorkspace, reuseLeftover, cleanWorkspace } from "./workspace.js";
 
 const SERVER_INFO = { name: "nhe-relay", version: "0.1.0" };
 const SERVER_CAPS = { tools: { listChanged: false } };
@@ -155,6 +156,61 @@ export async function handleMcp(request, env, deps) {
   }
 
   return { status: 200, body: { jsonrpc: "2.0", id, error: { code: -32601, message: "method_not_found" } } };
+}
+
+/**
+ * Handle soul.workspace_create, soul.workspace_reuse and soul.workspace_clean locally
+ * (D21 item 6). The workspace lifecycle is sealed into the relay own chain, like the
+ * walkthrough and the plan. The relay stores nothing; the caller holds each sealed revision.
+ */
+async function handleWorkspace(toolName, args, env, identity) {
+  const hmacKey = env.RELAY_HMAC_KEY;
+  if (typeof hmacKey !== "string" || hmacKey.length === 0)
+    throw new Error("RELAY_HMAC_KEY not configured");
+
+  if (toolName === "soul.workspace_create") {
+    const { plan, receipt } = await createWorkspace(hmacKey, {
+      employee_id: identity.employeeId,
+      entity_id: identity.entityId,
+      task_id: args.task_id,
+      repo: args.repo,
+      branch: args.branch,
+      path: args.path
+    });
+    return {
+      structuredContent: { workspace: plan, receipt },
+      content: [{ type: "text", text: JSON.stringify({ workspace: plan, receipt }) }]
+    };
+  }
+
+  if (toolName === "soul.workspace_reuse") {
+    if (args.workspace?.entity_id !== identity.entityId)
+      throw new Error("workspace belongs to another entity");
+    const { plan, receipt } = await reuseLeftover(hmacKey, args.workspace, args.receipt, {
+      entity_id: identity.entityId,
+      task_id: args.task_id,
+      unpushed_commits: args.unpushed_commits,
+      uncommitted_changes: args.uncommitted_changes
+    });
+    return {
+      structuredContent: { workspace: plan, receipt },
+      content: [{ type: "text", text: JSON.stringify({ workspace: plan, receipt }) }]
+    };
+  }
+
+  if (toolName === "soul.workspace_clean") {
+    if (args.workspace?.entity_id !== identity.entityId)
+      throw new Error("workspace belongs to another entity");
+    const { plan, receipt } = await cleanWorkspace(hmacKey, args.workspace, args.receipt, {
+      entity_id: identity.entityId
+    });
+    return {
+      structuredContent: { workspace: plan, receipt },
+      content: [{ type: "text", text: JSON.stringify({ workspace: plan, receipt }) }]
+    };
+  }
+
+  throw new Error("unknown workspace tool: " + toolName);
 }
 
 /**
@@ -397,6 +453,11 @@ async function dispatchTool(toolName, args, env, deps, identity, harness) {
   // is sealed into the relay's own chain. Comment and Proceed are not harness tools.
   if (toolName === "soul.plan_post" || toolName === "soul.plan_revise") {
     return await handlePlan(toolName, args, env, identity);
+  }
+  // soul.workspace_* are handled locally: the workspace lifecycle is sealed into the
+  // relay own chain, like the walkthrough and the plan.
+  if (toolName === "soul.workspace_create" || toolName === "soul.workspace_reuse" || toolName === "soul.workspace_clean") {
+    return await handleWorkspace(toolName, args, env, identity);
   }
   if (toolName.startsWith("soul.")) {
     return await callSoulBackend(toolName, args, env, deps, identity, harness);

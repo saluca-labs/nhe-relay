@@ -141,6 +141,47 @@ export const TOOLS = [
     }
   },
   {
+    name: "soul.workspace_create",
+    description: "Create a fresh isolated workspace for a task (D21 item 6). The workspace_id is derived from (entity_id, task_id) and is unique per task, so two tasks never share a workspace. The relay seals the creation into its own hash chain with an HMAC receipt. The caller holds the sealed artifact.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string", description: "The task identifier, e.g. T3.11" },
+        repo: { type: "string", description: "The repository full name or path" },
+        branch: { type: "string", description: "The branch name for this task" },
+        path: { type: "string", description: "The worktree or sandbox path" }
+      },
+      required: ["task_id", "repo", "branch", "path"]
+    }
+  },
+  {
+    name: "soul.workspace_reuse",
+    description: "Reuse a leftover workspace (D21 item 6). Refuses unless the workspace is provably the task own (receipt verifies, entity_id and task_id match) and nothing is unpushed (unpushed_commits === 0 and uncommitted_changes === false). Unknown push state is a refusal, never a pass.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        workspace: { type: "object", description: "The current sealed workspace revision" },
+        receipt: { type: "string", description: "The receipt for the current revision" },
+        task_id: { type: "string", description: "The task identifier" },
+        unpushed_commits: { type: "integer", description: "Number of unpushed commits (must be 0)" },
+        uncommitted_changes: { type: "boolean", description: "Whether there are uncommitted changes (must be false)" }
+      },
+      required: ["workspace", "receipt", "task_id", "unpushed_commits", "uncommitted_changes"]
+    }
+  },
+  {
+    name: "soul.workspace_clean",
+    description: "Clean a workspace on task completion (D21 item 6). Transitions the workspace from active to cleaned. A cleaned workspace cannot be reused or cleaned again. Requires a valid receipt and the requesting identity must match.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        workspace: { type: "object", description: "The current sealed workspace revision" },
+        receipt: { type: "string", description: "The receipt for the current revision" }
+      },
+      required: ["workspace", "receipt"]
+    }
+  },
+  {
     name: "knowledge.recall",
     description: "Retrieve passages from the curated company knowledge sets (Asphodel). Context-only or content+context depending on entity grants.",
     inputSchema: {
