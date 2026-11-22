@@ -15,11 +15,11 @@ function harnessConfig(over = {}) {
     enabled: true,
     token_ttl_sec: 3600,
     employees: [
-      { id: "emp-001", entity_id: "agent-emp-001", credential: "EMP_001_KEY" }
+      { id: "emp-001", entity_id: "agent-emp-001", credential: "EMP_001_KEY", grants: ["soul.*", "knowledge.*", "tiresias.*"] }
     ],
     soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 },
     knowledge: { url: "https://kb.test/mcp", secret: "KB_KEY", timeout_ms: 2000, k: 3 },
-    tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", timeout_ms: 1000 },
+    tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", agent: "acme", timeout_ms: 1000 },
     ...over
   });
 }
@@ -201,7 +201,7 @@ describe("MCP server: tools/call", () => {
     });
     const fetcher = async (url) => {
       if (url === "https://soul-svc.test/mcp") return new Response(soulResp, { status: 200, headers: { "content-type": "application/json" } });
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ allow: true }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v1", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
     const d = await authDeps({ fetcher });
@@ -227,7 +227,7 @@ describe("MCP server: tools/call", () => {
     });
     const fetcher = async (url) => {
       if (url === "https://kb.test/mcp") return new Response(kbResp, { status: 200, headers: { "content-type": "application/json" } });
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ allow: true }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v1", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
     const d = await authDeps({ fetcher });
@@ -244,7 +244,7 @@ describe("MCP server: tools/call", () => {
 
   it("returns an error result when Tiresias denies the call", async () => {
     const fetcher = async (url) => {
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ allow: false, reason: "spend_cap_exceeded" }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v1", decision: "deny", reason: "spend_cap_exceeded" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
     const d = await authDeps({ fetcher });
@@ -296,7 +296,7 @@ describe("MCP server: tools/call", () => {
     });
     const fetcher = async (url) => {
       if (url === "https://soul-svc.test/mcp") return new Response(soulResp, { status: 200, headers: { "content-type": "application/json" } });
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ allow: true }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v1", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
     const d = await authDeps({ fetcher });
@@ -347,7 +347,7 @@ describe("harness config validation", () => {
   it("accepts a disabled harness without soul", () => {
     const c = loadHarnessConfig({
       enabled: false,
-      employees: [{ id: "emp-001", entity_id: "agent-001", credential: "EMP_001_KEY" }]
+      employees: [{ id: "emp-001", entity_id: "agent-001", credential: "EMP_001_KEY", grants: ["soul.*"] }]
     });
     expect(c.enabled).toBe(false);
     expect(c.soul).toBeNull();

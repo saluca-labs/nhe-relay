@@ -1,0 +1,16 @@
+{
+  "contract": "tiresias.enterprise.decision/v1",
+  "source_repo": "salucallc/tiresias-zt",
+  "source_commit": "a3ad0e520f79f92ebc06b5653a4e2b7dd3787210",
+  "note": "Byte-exact copies of the files at the pinned commit. Never hand-edit. To move the pin: change source_commit, re-copy both files with `git show <commit>:<path>`, update the hashes, and run tools/check-contract-pin.mjs --fetch.",
+  "files": {
+    "v1/schema.json": {
+      "source_path": "contracts/enterprise-decision/v1/schema.json",
+      "sha256": "446073470cebbf52020db0a1f99eeeac738f027cfdc6e8eb615ffb0093036381"
+    },
+    "v1/golden.json": {
+      "source_path": "contracts/enterprise-decision/v1/golden.json",
+      "sha256": "82601f93d1c3c6b97ffc9e0bdccb110b60d8562b30f5529f9b01016a02b23301"
+    }
+  }
+}

@@ -51,8 +51,10 @@
       "k": 3
     },
     "tiresias": {
-      "url": "https://tiresias.customer.internal/api",
-      "secret": "TIRESIAS_RELAY_KEY",
+      "url": "https://tiresias.customer.internal/cp/enterprise/decision",
+      "secret": "TIRESIAS_ADMIN_KEY",
+      "agent": "customer-agent-slug",
+      "path_prefix": "/mcp/tools",
       "timeout_ms": 1000
     }
   }

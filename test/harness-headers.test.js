@@ -55,16 +55,16 @@ describe("planted credentials do not reach an upstream", () => {
     const harness = loadHarnessConfig({
       enabled: true,
       token_ttl_sec: 3600,
-      employees: [{ id: "emp-001", entity_id: "agent-emp-001", credential: "EMP_001_KEY" }],
+      employees: [{ id: "emp-001", entity_id: "agent-emp-001", credential: "EMP_001_KEY", grants: ["soul.*", "knowledge.*", "tiresias.*"] }],
       soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 },
-      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", timeout_ms: 1000 }
+      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", agent: "acme", timeout_ms: 1000 }
     });
     const env = { RELAY_ENABLED: "yes", RELAY_HMAC_KEY: HMAC, EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: "tiresias-secret" };
     const { token } = await issueToken(HMAC, { employeeId: "emp-001", entityId: "agent-emp-001", ttlSec: 3600, now: NOW });
     const seen = [];
     const fetcher = async (url, init) => {
       seen.push({ url, headers: init?.headers ?? {} });
-      return new Response(JSON.stringify({ allow: true, result: {} }), { status: 200, headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v1", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
     };
     const incoming = planted(token);
     const r = await handleMcp(

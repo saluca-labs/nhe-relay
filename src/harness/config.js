@@ -51,11 +51,12 @@ function validateEmployee(raw, i) {
   const entityId = str(o.entity_id, `${where}.entity_id`, ID_RE);
   const credential = str(o.credential, `${where}.credential`, SECRET_RE);
   const grants = o.grants;
-  if (grants !== undefined) {
-    if (!Array.isArray(grants) || grants.length === 0 || !grants.every(g => typeof g === "string" && /^[a-z0-9._*-]+$/.test(g)))
-      fail(`${where}.grants`, "must be a non-empty array of grant strings");
-  }
-  return { id, entityId, credential, grants: grants ?? ["*"] };
+  // Explicit grants only (T2.11): no default, and no bare "*" that authorises every tool.
+  if (!Array.isArray(grants) || grants.length === 0 || !grants.every(g => typeof g === "string" && /^[a-z0-9._*-]+$/.test(g)))
+    fail(`${where}.grants`, "required: a non-empty array of explicit grant strings");
+  if (grants.includes("*"))
+    fail(`${where}.grants`, 'a bare "*" grant is not allowed; list tools or prefixes such as "soul.*"');
+  return { id, entityId, credential, grants };
 }
 
 function validateBackend(raw, where, allowed) {
@@ -66,6 +67,24 @@ function validateBackend(raw, where, allowed) {
   const timeoutMs = int(o.timeout_ms, `${where}.timeout_ms`, 200, LIMITS.providerTimeoutMs, 3_000);
   const k = int(o.k, `${where}.k`, 1, 10, 3);
   return { url, secret, timeoutMs, k };
+}
+
+const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const PREFIX_RE = /^\/[A-Za-z0-9._~/-]{0,200}$/;
+
+/**
+ * The Tiresias block speaks tiresias.enterprise.decision/v1: `url` is the POST
+ * /cp/enterprise/decision endpoint, `secret` names the env var holding the X-Admin-Key,
+ * `agent` is the registry agent slug, `path_prefix` is the route prefix the tool name is
+ * appended to. url, secret and agent are all required.
+ */
+function validateTiresias(raw) {
+  const where = "harness.tiresias";
+  const o = obj(raw, where);
+  const base = validateBackend(o, where, ["url", "secret", "timeout_ms", "agent", "path_prefix"]);
+  const agent = str(o.agent, `${where}.agent`, SLUG_RE);
+  const pathPrefix = o.path_prefix === undefined ? "/mcp/tools" : str(o.path_prefix, `${where}.path_prefix`, PREFIX_RE);
+  return { ...base, agent, pathPrefix };
 }
 
 /**
@@ -98,10 +117,13 @@ export function loadHarnessConfig(raw) {
 
   const soul = o.soul !== undefined ? validateBackend(o.soul, "harness.soul", ["url", "secret", "timeout_ms"]) : null;
   const knowledge = o.knowledge !== undefined ? validateBackend(o.knowledge, "harness.knowledge", ["url", "secret", "timeout_ms", "k"]) : null;
-  const tiresias = o.tiresias !== undefined ? validateBackend(o.tiresias, "harness.tiresias", ["url", "secret", "timeout_ms"]) : null;
+  const tiresias = o.tiresias !== undefined ? validateTiresias(o.tiresias) : null;
 
   if (enabled && !soul)
     fail("harness.soul", "required when harness is enabled");
+  // Fail closed (T2.11): a harness with no Tiresias is a harness with no policy. Cannot tell is a refusal.
+  if (enabled && !tiresias)
+    fail("harness.tiresias", "required when harness is enabled: the relay refuses to run without a Tiresias decision endpoint");
 
   return { enabled, tokenTtlSec, employees, soul, knowledge, tiresias };
 }

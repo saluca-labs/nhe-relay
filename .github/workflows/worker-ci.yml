@@ -31,5 +31,6 @@ jobs:
           if grep -rlE "from ['\"]node:" src; then echo "the Worker source must not import Node modules"; exit 1; fi
       - run: node --test
       - run: node tools/check-text.mjs
+      - run: node tools/check-contract-pin.mjs
       - run: node tools/guard-mutations.mjs
       - run: node tools/deploy.mjs --dry-run > /dev/null

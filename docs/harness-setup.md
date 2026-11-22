@@ -131,6 +131,18 @@ Each call is:
 - **Receipted**: the relay issues a chained HMAC receipt (in `_meta.receipt`), verifiable
   without storing content.
 
+### Tiresias decision contract (fail closed)
+
+`harness.tiresias` is required when the harness is enabled; a config without it refuses to load.
+The relay speaks `tiresias.enterprise.decision/v1` to `POST /cp/enterprise/decision`: header
+`X-Admin-Key` (the env var named by `secret`), body `{contract, agent, acting_as, method, path,
+tool: {name, arguments}}` with the employee id as `acting_as`. A call proceeds only on HTTP 200
+with `decision: "allow"`. `supervised` returns "Approval required" and does not run the call;
+anything else, a missing admin key and any transport failure are refusals. Grants are explicit:
+each employee needs a `grants` list and a bare `"*"` is refused. The contract files are vendored
+from tiresias-zt at the commit in `contracts/tiresias-enterprise-decision/PIN.json`; check them
+with `node tools/check-contract-pin.mjs` (add `--fetch` to compare against the pinned source).
+
 ## Step 4: Verify the connection
 
 After connecting, the harness should be able to list tools and call them. A quick test:

@@ -17,6 +17,7 @@ import { issueToken, verifyToken, extractBearer } from "./login.js";
 import { TOOLS, findTool, PROTOCOL_VERSION } from "./tools.js";
 import { findEmployee } from "./config.js";
 import { hasGrant } from "./grants.js";
+import { decide } from "./tiresias-decision.js";
 import { keyedId, issueReceipt } from "../chain.js";
 import { createWalkthrough } from "./walkthrough.js";
 import { createPlan, revisePlan, proposalCards } from "./plan.js";
@@ -229,15 +230,11 @@ async function handleToolCall(rpc, env, deps, identity, harness) {
     return { status: 200, body: { jsonrpc: "2.0", id, error: { code: -32602, message: `unknown tool: ${toolName}` } } };
   }
 
-  // 1. Policy check: Tiresias decides before the backend is called.
-  const policyDecision = await checkPolicy(deps, harness, {
-    intent: "tool_call",
-    tool: toolName,
-    employeeId: identity.employeeId,
-    entityId: identity.entityId
-  });
-  if (!policyDecision.allow) {
-    const receipt = await receiptFor(env, deps, identity, toolName, "denied");
+  // 1. Policy check: Tiresias decides before the backend is called (tiresias.enterprise.decision/v1).
+  const policyDecision = await decide(deps, harness, identity, toolName, args);
+  if (policyDecision.action !== "proceed") {
+    const supervised = policyDecision.action === "request_approval";
+    const receipt = await receiptFor(env, deps, identity, toolName, supervised ? "supervised" : "denied");
     return {
       status: 200,
       body: {
@@ -245,7 +242,9 @@ async function handleToolCall(rpc, env, deps, identity, harness) {
         id,
         result: {
           isError: true,
-          content: [{ type: "text", text: `Policy denied: ${policyDecision.reason}` }],
+          content: [{ type: "text", text: supervised
+            ? `Approval required: ${policyDecision.reason}. The call was not run.`
+            : `Policy denied: ${policyDecision.reason}` }],
           _meta: { receipt }
         }
       }
@@ -321,34 +320,6 @@ async function handleToolCall(rpc, env, deps, identity, harness) {
       }
     }
   };
-}
-
-/**
- * Check policy via Tiresias. If no Tiresias backend is configured, the built-in policy allows
- * (the relay guards already ran). A Tiresias that cannot be reached is a deny.
- */
-async function checkPolicy(deps, harness, req) {
-  if (!harness.tiresias) {
-    return { allow: true };
-  }
-  try {
-    const cfg = harness.tiresias;
-    const headers = { "content-type": "application/json" };
-    const key = deps.env[cfg.secret];
-    if (key) headers.authorization = `Bearer ${key}`;
-    const resp = await deps.fetcher(cfg.url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(req),
-      signal: AbortSignal.timeout(cfg.timeoutMs)
-    });
-    if (!resp.ok) return { allow: false, reason: "tiresias_error" };
-    const body = await resp.json();
-    if (body.allow === true) return { allow: true };
-    return { allow: false, reason: body.reason ?? "tiresias_deny" };
-  } catch {
-    return { allow: false, reason: "tiresias_unreachable" };
-  }
 }
 
 /**
@@ -556,25 +527,9 @@ async function callKnowledgeBackend(toolName, args, env, deps, identity, harness
 }
 
 async function callTiresiasDirect(args, env, deps, identity, harness) {
-  const cfg = harness.tiresias;
-  if (!cfg) {
-    return { content: [{ type: "text", text: JSON.stringify({ allow: true, reason: "no_tiresias_configured" }) }] };
-  }
-  const headers = { "content-type": "application/json" };
-  const key = env[cfg.secret];
-  if (key) headers.authorization = `Bearer ${key}`;
-
-  const resp = await deps.fetcher(cfg.url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      intent: args.intent,
-      model: args.model,
-      employee_id: identity.employeeId,
-      entity_id: identity.entityId
-    }),
-    signal: AbortSignal.timeout(cfg.timeoutMs)
-  });
-  const body = await resp.json();
-  return { structuredContent: body, content: [{ type: "text", text: JSON.stringify(body) }] };
+  // A what-if check through the same contract call; nothing is executed. handleToolCall has
+  // already refused when Tiresias is unconfigured, and decide() refuses again here.
+  const d = await decide(deps, harness, identity, `policy_check.${String(args.intent ?? "unknown")}`, { intent: args.intent, ...(args.model !== undefined ? { model: args.model } : {}) });
+  const out = { decision: d.action === "proceed" ? "allow" : d.action === "request_approval" ? "supervised" : "deny", reason: d.reason };
+  return { structuredContent: out, content: [{ type: "text", text: JSON.stringify(out) }] };
 }

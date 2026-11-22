@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://saluca.com/contracts/tiresias.enterprise.decision/v1/schema.json",
+  "title": "tiresias.enterprise.decision/v1",
+  "description": "Pre-call decision contract between a caller (nhe-relay, T2.11) and Tiresias-ZT POST /cp/enterprise/decision (T1.05). Transport: HTTPS POST, header X-Admin-Key: <admin key>, JSON body = #/$defs/request. A 200 body is #/$defs/response; every other status carries #/$defs/error. Caller rules (normative): proceed ONLY on HTTP 200 with decision == \"allow\"; on decision == \"supervised\" route the call to the approval channel and do not proceed until a verified approval returns; refuse on decision == \"deny\", on any other decision value, on any non-200 status, on a body that does not validate, on a contract value other than this one, and on any transport failure or timeout. Absence of a Tiresias configuration is a refusal, never an allow.",
+  "$defs": {
+    "contract": {"const": "tiresias.enterprise.decision/v1"},
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$",
+      "description": "A plain identifier: no '/', no '*', at most 128 characters."
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "method", "path"],
+      "properties": {
+        "contract": {"$ref": "#/$defs/contract", "description": "Optional; when present it must be this contract."},
+        "agent": {"type": "string", "minLength": 1, "description": "Registry agent slug (the leaf that owns backend, secret and route policy)."},
+        "acting_as": {"$ref": "#/$defs/identifier", "description": "The acting identity (the capability token's agent_id; for Manto, the employee's agent). Omitted means the agent-wide row."},
+        "method": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "pattern": "^/"},
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "arguments": {"type": "object", "description": "Tool arguments, matched by canonical JSON (typed) against the template's tool_grants."}
+          }
+        }
+      }
+    },
+    "autonomy": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["mode", "rule", "reason", "elevated", "enforce"],
+      "properties": {
+        "mode": {"enum": ["autonomous", "supervised", "denied"]},
+        "rule": {"type": "string"},
+        "reason": {"type": "string"},
+        "elevated": {"type": "boolean"},
+        "enforce": {"type": "boolean"}
+      }
+    },
+    "tool_rule": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["verdict", "rule", "reason"],
+      "properties": {
+        "verdict": {"enum": ["allow", "ask", "deny"]},
+        "rule": {"type": "string"},
+        "reason": {"type": "string"}
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "decision", "reason", "agent", "acting_as", "route_decision",
+                   "route_reason", "matched_policy", "autonomy", "tool_rule", "spend_caps", "template"],
+      "properties": {
+        "contract": {"$ref": "#/$defs/contract"},
+        "decision": {"enum": ["allow", "supervised", "deny"], "description": "The one field a caller acts on. Most restrictive of route policy, tool rules and autonomy."},
+        "reason": {"type": "string"},
+        "agent": {"type": "string"},
+        "acting_as": {"type": ["string", "null"]},
+        "route_decision": {"enum": ["allow", "deny"]},
+        "route_reason": {"type": "string"},
+        "matched_policy": {"type": ["object", "null"]},
+        "autonomy": {"$ref": "#/$defs/autonomy"},
+        "tool_rule": {"$ref": "#/$defs/tool_rule"},
+        "spend_caps": {"type": ["array", "null"]},
+        "template": {"type": ["string", "null"]}
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["contract", "error"],
+      "properties": {
+        "contract": {"$ref": "#/$defs/contract"},
+        "error": {"enum": ["enterprise_api_disabled", "forbidden", "invalid_json", "unsupported_contract",
+                           "unsupported_field", "agent_required", "method_required", "path_required",
+                           "invalid_acting_as", "invalid_tool", "unknown_agent", "registry_unreadable"]},
+        "detail": {"type": "string"},
+        "supported": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
