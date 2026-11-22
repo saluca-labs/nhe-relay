@@ -48,6 +48,11 @@ const MUTANTS = [
   { name: "workspace W5: reuseLeftover accepts undefined unpushed_commits", file: "src/harness/workspace.js", from: 'if (typeof opts.unpushed_commits !== "number" || !Number.isSafeInteger(opts.unpushed_commits) || opts.unpushed_commits < 0)\n    throw new WorkspaceError("unpushed_commits must be a non-negative integer");', to: "" },
   { name: "workspace W6: reuseLeftover accepts wrong entity_id", file: "src/harness/workspace.js", from: 'if (plan.entity_id !== opts.entity_id)\n    throw new WorkspaceError("workspace belongs to another entity");', to: "" },
   { name: "workspace W7: reuseLeftover accepts a cleaned workspace", file: "src/harness/workspace.js", from: 'if (plan.status !== STATUS_ACTIVE)\n    throw new WorkspaceError("workspace is not active: already cleaned");', to: "" },
+  { name: "decision v2: admin-key-shaped secret sent", file: "src/harness/tiresias-decision.js", from: "if (!RELAY_CREDENTIAL_RE.test(credential))", to: "if (false)" },
+  { name: "decision v2: credential sent as X-Admin-Key", file: "src/harness/tiresias-decision.js", from: 'authorization: `Bearer ${credential}`', to: '"X-Admin-Key": credential' },
+  { name: "decision v2: a refusal status proceeds", file: "src/harness/tiresias-decision.js", from: 'if (resp.status !== 200) return { action: "refuse", reason: "tiresias_error" };', to: 'if (resp.status !== 200) return { action: "proceed", reason: "tiresias_error" };' },
+  { name: "decision v2: a v1 answer accepted", file: "src/harness/tiresias-decision.js", from: 'if (body.contract !== CONTRACT) return { action: "refuse", reason: "tiresias_contract_mismatch" };', to: "" },
+  { name: "decision v2: admin-key secret name accepted", file: "src/harness/config.js", from: "if (/ADMIN/i.test(base.secret))", to: "if (false)" },
   { name: "anthropic refusal becomes a reply", file: "src/providers/llm/anthropic.js", from: 'if (msg?.stop_reason === "refusal") throw new ProviderError("refused", msg.stop_details?.category ?? "");', to: "" },
 ];
 

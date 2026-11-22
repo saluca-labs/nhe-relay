@@ -230,7 +230,7 @@ async function handleToolCall(rpc, env, deps, identity, harness) {
     return { status: 200, body: { jsonrpc: "2.0", id, error: { code: -32602, message: `unknown tool: ${toolName}` } } };
   }
 
-  // 1. Policy check: Tiresias decides before the backend is called (tiresias.enterprise.decision/v1).
+  // 1. Policy check: Tiresias decides before the backend is called (tiresias.enterprise.decision/v2).
   const policyDecision = await decide(deps, harness, identity, toolName, args);
   if (policyDecision.action !== "proceed") {
     const supervised = policyDecision.action === "request_approval";

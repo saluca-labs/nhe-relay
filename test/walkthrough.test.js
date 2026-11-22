@@ -21,6 +21,7 @@ import {
   verifyWalkthrough
 } from "../src/harness/walkthrough.js";
 import { canonical } from "../src/chain.js";
+import { TEST_RELAY_CREDENTIAL } from "./support/relay-credential.js";
 
 const HMAC = "test-only-hmac-key-for-walkthrough-tests-0123";
 
@@ -464,7 +465,7 @@ describe("soul.walkthrough via MCP server", () => {
     });
     const env = {
       RELAY_ENABLED: "yes", RELAY_HMAC_KEY: HMAC_KEY,
-      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: "tiresias-secret"
+      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: TEST_RELAY_CREDENTIAL
     };
     const { token } = await login.issueToken(HMAC_KEY, {
       employeeId: "emp-001", entityId: "agent-emp-001", ttlSec: 3600, now: 1_700_000_000_000
@@ -473,7 +474,7 @@ describe("soul.walkthrough via MCP server", () => {
     headers.set("authorization", "Bearer " + token);
 
     const fetcher = async (url) => {
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v1", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v2", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
 
@@ -514,7 +515,7 @@ describe("soul.walkthrough via MCP server", () => {
     });
     const env = {
       RELAY_ENABLED: "yes", RELAY_HMAC_KEY: HMAC_KEY,
-      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: "tiresias-secret"
+      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: TEST_RELAY_CREDENTIAL
     };
     const { token } = await login.issueToken(HMAC_KEY, {
       employeeId: "emp-001", entityId: "agent-emp-001", ttlSec: 3600, now: 1_700_000_000_000
@@ -523,7 +524,7 @@ describe("soul.walkthrough via MCP server", () => {
     headers.set("authorization", "Bearer " + token);
 
     const fetcher = async (url) => {
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v1", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v2", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
 

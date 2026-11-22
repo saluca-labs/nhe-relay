@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Saluca Labs
 
-// Drift check for the vendored tiresias.enterprise.decision/v1 contract files.
+// Drift check for the vendored tiresias.enterprise.decision contract files (v2 since 2026-11-21).
 // Default: every vendored file must hash to the value pinned in PIN.json (offline, exit 1 on
 // drift, so a hand edit turns CI red). With --fetch: also download each file from the pinned
 // commit of the source repo (needs GITHUB_TOKEN or GH_TOKEN for a private repo) and require it

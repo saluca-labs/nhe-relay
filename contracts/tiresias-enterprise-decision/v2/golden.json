@@ -1,0 +1,936 @@
+{
+  "contract": "tiresias.enterprise.decision/v2",
+  "description": "Golden request/response pairs for tiresias.enterprise.decision/v2. Tiresias-ZT replays every case against a live app built from `setup` (tests/test_contract_enterprise_decision_v2.py), issuing and revoking the credentials through its admin API. A caller (nhe-relay T2.11) can use each `expect` as a stub answer and assert its own behaviour equals `caller_must`: proceed, request_approval or refuse. `expect.body` is a SUBSET: a caller must ignore fields it does not know. `request.endpoint` (default /cp/enterprise/decision) and `request.method` (default POST) name cases that present the relay credential to OTHER endpoints, which must refuse it; those answers are not decision-contract bodies and are not validated against the schema. The `tiresias_unreachable` case has no answer: the caller must refuse.",
+  "setup": {
+    "admin_key": "contract-admin-key",
+    "registry": {
+      "tenants": {
+        "acme": {
+          "capability_secret": "contract-capability-secret",
+          "backend": {
+            "kind": "generic-http",
+            "url": "https://backend.contract.test",
+            "auth": {
+              "type": "none"
+            }
+          },
+          "policies": [
+            {
+              "methods": [
+                "GET"
+              ],
+              "path_prefix": "/v1/memory",
+              "scope": "memory:read"
+            },
+            {
+              "methods": [
+                "POST"
+              ],
+              "path_prefix": "/v1/memory/search",
+              "scope": "memory:read"
+            },
+            {
+              "methods": [
+                "POST",
+                "DELETE"
+              ],
+              "path_prefix": "/v1/memory",
+              "scope": "memory:write"
+            }
+          ],
+          "customer": "acme-corp"
+        },
+        "globex-bot": {
+          "capability_secret": "contract-capability-secret-globex",
+          "backend": {
+            "kind": "generic-http",
+            "url": "https://globex.contract.test",
+            "auth": {
+              "type": "none"
+            }
+          },
+          "policies": [
+            {
+              "methods": [
+                "GET"
+              ],
+              "path_prefix": "/v1/memory",
+              "scope": "memory:read"
+            },
+            {
+              "methods": [
+                "POST"
+              ],
+              "path_prefix": "/v1/memory/search",
+              "scope": "memory:read"
+            },
+            {
+              "methods": [
+                "POST",
+                "DELETE"
+              ],
+              "path_prefix": "/v1/memory",
+              "scope": "memory:write"
+            }
+          ],
+          "customer": "globex"
+        },
+        "orphan": {
+          "capability_secret": "contract-capability-secret-orphan",
+          "backend": {
+            "kind": "generic-http",
+            "url": "https://orphan.contract.test",
+            "auth": {
+              "type": "none"
+            }
+          },
+          "policies": [
+            {
+              "methods": [
+                "GET"
+              ],
+              "path_prefix": "/v1/memory",
+              "scope": "memory:read"
+            },
+            {
+              "methods": [
+                "POST"
+              ],
+              "path_prefix": "/v1/memory/search",
+              "scope": "memory:read"
+            },
+            {
+              "methods": [
+                "POST",
+                "DELETE"
+              ],
+              "path_prefix": "/v1/memory",
+              "scope": "memory:write"
+            }
+          ]
+        }
+      }
+    },
+    "enterprise_policy": "templates:\n  analyst:\n    intents:\n      \"GET /v1/memory/*\": autonomous\n      \"POST /v1/memory/search\": autonomous\n      \"POST /v1/memory\": supervised\n      \"DELETE /v1/memory/*\": denied\n    tool_grants:\n      - {tool: memory_search, verdict: allow}\n      - {tool: memory_write, verdict: ask}\n      - {tool: http_request, verdict: deny}\n      - {tool: report, verdict: allow, args: {limit: 10}}\nassignments:\n  \"acme/agent-007\": analyst\n",
+    "credentials": {
+      "acme": {
+        "tenant": "acme-corp",
+        "site": null
+      },
+      "acme_site1": {
+        "tenant": "acme-corp",
+        "site": "site-1"
+      },
+      "globex": {
+        "tenant": "globex",
+        "site": null
+      },
+      "acme_revoked": {
+        "tenant": "acme-corp",
+        "site": null,
+        "revoked": true
+      },
+      "never_issued": {
+        "issued": false
+      }
+    },
+    "substitution": "Header values are templates: `{credential:NAME}` is the raw value of the credential NAME, issued through POST /admin/relay-credentials for the named tenant and site (and revoked through DELETE /admin/relay-credentials/{id} when `revoked`); `never_issued` is a fresh, well-formed value Tiresias never issued. `{admin_key}` is setup.admin_key. No credential value is stored in this file."
+  },
+  "cases": [
+    {
+      "name": "autonomous_allow",
+      "caller_must": "proceed",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "decision": "allow",
+          "route_decision": "allow",
+          "template": "analyst",
+          "autonomy": {
+            "mode": "autonomous"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "supervised",
+      "caller_must": "request_approval",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "POST",
+          "path": "/v1/memory"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "supervised",
+          "autonomy": {
+            "mode": "supervised"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "autonomy_denied",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "DELETE",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "deny",
+          "route_decision": "allow",
+          "autonomy": {
+            "mode": "denied"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "omitted_intent_is_denied",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v2/other"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "deny",
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "unassigned_identity_is_denied",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-999",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "deny",
+          "template": null,
+          "autonomy": {
+            "mode": "denied"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "route_denied",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "PUT",
+          "path": "/v1/unknown"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "deny",
+          "route_decision": "deny",
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "tool_denied",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "POST",
+          "path": "/v1/memory/search",
+          "tool": {
+            "name": "http_request",
+            "arguments": {
+              "method": "GET",
+              "path": "/"
+            }
+          }
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "deny",
+          "tool_rule": {
+            "verdict": "deny"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "tool_unmapped",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc",
+          "tool": {
+            "name": "shell_exec",
+            "arguments": {}
+          }
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "deny",
+          "tool_rule": {
+            "verdict": "deny"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "tool_ask_is_supervised",
+      "caller_must": "request_approval",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc",
+          "tool": {
+            "name": "memory_write",
+            "arguments": {
+              "content": "x"
+            }
+          }
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "supervised",
+          "tool_rule": {
+            "verdict": "ask"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "tool_typed_argument_match",
+      "caller_must": "proceed",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc",
+          "tool": {
+            "name": "report",
+            "arguments": {
+              "limit": 10
+            }
+          }
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "allow",
+          "tool_rule": {
+            "verdict": "allow"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "tool_typed_argument_mismatch",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc",
+          "tool": {
+            "name": "report",
+            "arguments": {
+              "limit": "10"
+            }
+          }
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "deny",
+          "tool_rule": {
+            "verdict": "deny"
+          },
+          "tenant": "acme-corp"
+        }
+      }
+    },
+    {
+      "name": "unknown_agent",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "nobody",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 404,
+        "body": {
+          "error": "unknown_agent"
+        }
+      }
+    },
+    {
+      "name": "site_bound_credential_with_its_site",
+      "caller_must": "proceed",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme_site1}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc",
+          "site": "site-1"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "decision": "allow",
+          "tenant": "acme-corp",
+          "site": "site-1"
+        }
+      }
+    },
+    {
+      "name": "site_bound_credential_other_site",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme_site1}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc",
+          "site": "site-2"
+        }
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "site_mismatch"
+        }
+      }
+    },
+    {
+      "name": "site_bound_credential_no_site",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme_site1}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "site_mismatch"
+        }
+      }
+    },
+    {
+      "name": "other_tenant_agent",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "globex-bot",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 404,
+        "body": {
+          "error": "unknown_agent"
+        }
+      },
+      "note": "An agent of another tenant is answered exactly as an unknown agent."
+    },
+    {
+      "name": "credential_of_another_tenant",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:globex}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 404,
+        "body": {
+          "error": "unknown_agent"
+        }
+      }
+    },
+    {
+      "name": "agent_in_no_tenant",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "orphan",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 404,
+        "body": {
+          "error": "unknown_agent"
+        }
+      }
+    },
+    {
+      "name": "revoked_credential",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme_revoked}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 401,
+        "body": {
+          "error": "credential_revoked"
+        }
+      }
+    },
+    {
+      "name": "never_issued_credential",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:never_issued}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 401,
+        "body": {
+          "error": "invalid_credential"
+        }
+      }
+    },
+    {
+      "name": "no_credential",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {},
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 401,
+        "body": {
+          "error": "credential_required"
+        }
+      }
+    },
+    {
+      "name": "admin_key_refused",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "X-Admin-Key": "{admin_key}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "admin_key_refused"
+        }
+      }
+    },
+    {
+      "name": "admin_key_refused_even_with_a_valid_credential",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "X-Admin-Key": "{admin_key}",
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "admin_key_refused"
+        }
+      }
+    },
+    {
+      "name": "admin_key_as_bearer",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {admin_key}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 401,
+        "body": {
+          "error": "invalid_credential"
+        }
+      }
+    },
+    {
+      "name": "v1_request_is_retired",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "X-Admin-Key": "{admin_key}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v1",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 410,
+        "body": {
+          "error": "v1_retired"
+        }
+      }
+    },
+    {
+      "name": "contract_omitted_is_v1_and_retired",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "X-Admin-Key": "{admin_key}"
+        },
+        "body": {
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 410,
+        "body": {
+          "error": "v1_retired"
+        }
+      }
+    },
+    {
+      "name": "unsupported_contract",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v3",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc"
+        }
+      },
+      "expect": {
+        "status": 400,
+        "body": {
+          "error": "unsupported_contract"
+        }
+      }
+    },
+    {
+      "name": "unsupported_field",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "contract": "tiresias.enterprise.decision/v2",
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "method": "GET",
+          "path": "/v1/memory/abc",
+          "employeeId": "e-1"
+        }
+      },
+      "expect": {
+        "status": 400,
+        "body": {
+          "error": "unsupported_field"
+        }
+      }
+    },
+    {
+      "name": "credential_on_token_endpoint",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "agent": "acme",
+          "acting_as": "agent-007",
+          "scopes": [
+            "memory:read"
+          ]
+        },
+        "endpoint": "/cp/enterprise/token"
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "forbidden"
+        }
+      },
+      "note": "The relay credential opens nothing but the decision endpoint."
+    },
+    {
+      "name": "credential_on_admin_endpoint",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": null,
+        "endpoint": "/admin/relay-credentials",
+        "method": "GET"
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "forbidden"
+        }
+      }
+    },
+    {
+      "name": "credential_as_admin_key_on_admin_endpoint",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "X-Admin-Key": "{credential:acme}"
+        },
+        "body": null,
+        "endpoint": "/admin/relay-credentials",
+        "method": "GET"
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "forbidden"
+        }
+      }
+    },
+    {
+      "name": "credential_issues_no_credential",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": {
+          "tenant": "acme-corp"
+        },
+        "endpoint": "/admin/relay-credentials"
+      },
+      "expect": {
+        "status": 403,
+        "body": {
+          "error": "forbidden"
+        }
+      }
+    },
+    {
+      "name": "credential_on_data_plane",
+      "caller_must": "refuse",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer {credential:acme}"
+        },
+        "body": null,
+        "endpoint": "/v1/memory/abc",
+        "method": "GET"
+      },
+      "expect": {
+        "status": 401,
+        "body": {}
+      }
+    },
+    {
+      "name": "tiresias_unreachable",
+      "caller_must": "refuse",
+      "request": null,
+      "expect": {
+        "transport_error": true
+      }
+    }
+  ]
+}

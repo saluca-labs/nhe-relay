@@ -73,18 +73,26 @@ const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const PREFIX_RE = /^\/[A-Za-z0-9._~/-]{0,200}$/;
 
 /**
- * The Tiresias block speaks tiresias.enterprise.decision/v1: `url` is the POST
- * /cp/enterprise/decision endpoint, `secret` names the env var holding the X-Admin-Key,
- * `agent` is the registry agent slug, `path_prefix` is the route prefix the tool name is
- * appended to. url, secret and agent are all required.
+ * The Tiresias block speaks tiresias.enterprise.decision/v2: `url` is the POST
+ * /cp/enterprise/decision endpoint, `secret` names the env var (Worker secret) holding the RELAY
+ * CREDENTIAL (`tzr_...`, sent as Authorization: Bearer), `agent` is the registry agent slug,
+ * `path_prefix` is the route prefix the tool name is appended to, and `site` is this relay's site
+ * when its credential is bound to one. url, secret and agent are all required.
+ *
+ * The relay never holds the Tiresias platform admin key. A `secret` whose env var NAME says ADMIN is
+ * refused here, and a value that is not shaped like a relay credential is refused at call time
+ * (tiresias-decision.js), so an admin key cannot be configured into this slot by accident.
  */
 function validateTiresias(raw) {
   const where = "harness.tiresias";
   const o = obj(raw, where);
-  const base = validateBackend(o, where, ["url", "secret", "timeout_ms", "agent", "path_prefix"]);
+  const base = validateBackend(o, where, ["url", "secret", "timeout_ms", "agent", "path_prefix", "site"]);
+  if (/ADMIN/i.test(base.secret))
+    fail(`${where}.secret`, "names an admin-key variable; the relay holds only its relay credential (tzr_...), never the Tiresias admin key");
   const agent = str(o.agent, `${where}.agent`, SLUG_RE);
   const pathPrefix = o.path_prefix === undefined ? "/mcp/tools" : str(o.path_prefix, `${where}.path_prefix`, PREFIX_RE);
-  return { ...base, agent, pathPrefix };
+  const site = o.site === undefined ? null : str(o.site, `${where}.site`, SLUG_RE);
+  return { ...base, agent, pathPrefix, site };
 }
 
 /**
