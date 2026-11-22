@@ -22,6 +22,7 @@ import { hasGrant, grantMatches } from "../src/harness/grants.js";
 import { createLeaverExport, verifyLeaverExport, isHashOnly } from "../src/harness/export.js";
 import { checkReceipt } from "../src/chain.js";
 import { TOOLS, PROTOCOL_VERSION } from "../src/harness/tools.js";
+import { TEST_RELAY_CREDENTIAL } from "./support/relay-credential.js";
 
 const HMAC = "test-only-hmac-key-0123456789abcdef0123456789";
 const NOW = 1_700_000_000_000;
@@ -50,7 +51,7 @@ function harnessConfig(over = {}) {
     ],
     soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 },
     knowledge: { url: "https://kb.test/mcp", secret: "KB_KEY", timeout_ms: 2000, k: 3 },
-    tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", timeout_ms: 1000 },
+    tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", agent: "acme", timeout_ms: 1000 },
     ...over
   });
 }
@@ -63,7 +64,7 @@ function testEnv(over = {}) {
     EMP_LIMITED_KEY: "secret-limited",
     SOUL_KEY: "soul-secret",
     KB_KEY: "kb-secret",
-    TIRESIAS_KEY: "tiresias-secret",
+    TIRESIAS_KEY: TEST_RELAY_CREDENTIAL,
     ...over
   };
 }
@@ -83,7 +84,7 @@ function knowledgeResponse(passages) {
 }
 
 function makeFetcher(opts = {}) {
-  const tiresiasDecision = opts.tiresiasDecision ?? { allow: true };
+  const tiresiasDecision = opts.tiresiasDecision ?? { contract: "tiresias.enterprise.decision/v2", decision: "allow" };
   const soulText = opts.soulText ?? "ok";
   const kbPassages = opts.kbPassages ?? [{ text: "handbook section 3", id: "kb:1" }];
   const calls = [];
@@ -218,7 +219,7 @@ for (const ht of HARNESS_TYPES) {
 
     // 2. Model call decided by Tiresias
     it("model call: Tiresias is consulted and allow lets the call through", async () => {
-      const { fetcher, calls } = makeFetcher({ tiresiasDecision: { allow: true } });
+      const { fetcher, calls } = makeFetcher({ tiresiasDecision: { contract: "tiresias.enterprise.decision/v2", decision: "allow" } });
       const d = await authDeps("emp-full", { fetcher });
       const r = await handleMcp(
         { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "soul.identity", arguments: {} } },
@@ -230,11 +231,14 @@ for (const ht of HARNESS_TYPES) {
       // Tiresias was called
       const tiresiasCall = calls.find(c => c.url === "https://tiresias.test/api");
       expect(tiresiasCall).not.toBeUndefined();
-      expect(tiresiasCall.body.intent).toBe("tool_call");
+      expect(tiresiasCall.body.contract).toBe("tiresias.enterprise.decision/v2");
+      expect(tiresiasCall.body.tool.name).toBe("soul.identity");
+      expect(tiresiasCall.headers.authorization).toBe(`Bearer ${TEST_RELAY_CREDENTIAL}`);
+      expect(tiresiasCall.headers["X-Admin-Key"]).toBeUndefined();
     });
 
     it("model call: Tiresias deny blocks the call with a reason", async () => {
-      const { fetcher } = makeFetcher({ tiresiasDecision: { allow: false, reason: "spend_cap_exceeded" } });
+      const { fetcher } = makeFetcher({ tiresiasDecision: { contract: "tiresias.enterprise.decision/v2", decision: "deny", reason: "spend_cap_exceeded" } });
       const d = await authDeps("emp-full", { fetcher });
       const r = await handleMcp(
         { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "soul.identity", arguments: {} } },
@@ -317,7 +321,7 @@ for (const ht of HARNESS_TYPES) {
     });
 
     it("turn receipted: every denied call includes a receipt", async () => {
-      const { fetcher } = makeFetcher({ tiresiasDecision: { allow: false, reason: "denied" } });
+      const { fetcher } = makeFetcher({ tiresiasDecision: { contract: "tiresias.enterprise.decision/v2", decision: "deny", reason: "denied" } });
       const d = await authDeps("emp-full", { fetcher });
       const r = await handleMcp(
         { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "soul.identity", arguments: {} } },
@@ -433,7 +437,7 @@ describe("certification: planted fault RED checks", () => {
     // Plant a fetcher that never responds to the Tiresias URL
     const bypassFetcher = async (url) => {
       if (url === "https://tiresias.test/api")
-        return new Response(JSON.stringify({ allow: false, reason: "tiresias_unreachable" }), { status: 500 });
+        return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v2", decision: "deny", reason: "tiresias_unreachable" }), { status: 500 });
       if (url === "https://soul-svc.test/mcp")
         return new Response(soulResponse("ok"), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
@@ -449,7 +453,7 @@ describe("certification: planted fault RED checks", () => {
   });
 
   // Fault 3: grant check is bypassed (employee without knowledge.recall gets through)
-  it("RED fault: grant enforcement must deny ungranted tools (fault: grants set to ['*'])", async () => {
+  it("RED fault: grant enforcement must deny ungranted tools (fault: grants set to the bare star)", async () => {
     // Plant: give emp-limited a wildcard grant, which SHOULD be denied by the real check
     // but here we verify the real config (without wildcard) correctly denies
     const d = await authDeps("emp-limited");

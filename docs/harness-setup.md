@@ -131,6 +131,28 @@ Each call is:
 - **Receipted**: the relay issues a chained HMAC receipt (in `_meta.receipt`), verifiable
   without storing content.
 
+### Tiresias decision contract (fail closed)
+
+`harness.tiresias` is required when the harness is enabled; a config without it refuses to load.
+The relay speaks `tiresias.enterprise.decision/v2` to `POST /cp/enterprise/decision` with
+`Authorization: Bearer <relay credential>`, body `{contract, agent, acting_as, method, path, site?,
+tool: {name, arguments}}` with the employee id as `acting_as`. A call proceeds only on HTTP 200 with
+`decision: "allow"`. `supervised` returns "Approval required" and does not run the call; anything else,
+a missing or malformed credential and any transport failure are refusals.
+
+**The relay holds a relay credential, never the Tiresias admin key.** A Tiresias admin issues one
+credential per relay with `POST /admin/relay-credentials` (`{tenant, site?, label?}`); it looks like
+`tzr_<16 hex>_<64 hex>`, is shown once, opens only the decision endpoint, answers only for that
+tenant's agents, and is revoked (`DELETE /admin/relay-credentials/{id}`) or rotated
+(`POST /admin/relay-credentials/{id}/rotate`) without touching any other relay. Store it as a Worker
+secret (`wrangler secret put TIRESIAS_RELAY_CREDENTIAL`) and name that variable in `secret`. The relay
+refuses to send any value not shaped like a relay credential, and the config refuses a `secret` whose
+variable name contains `ADMIN`. If the credential is bound to a site, set `site` to the same value.
+
+Grants are explicit: each employee needs a `grants` list and a bare `"*"` is refused. The contract files
+are vendored from tiresias-zt at the commit in `contracts/tiresias-enterprise-decision/PIN.json`; check
+them with `node tools/check-contract-pin.mjs` (add `--fetch` to compare against the pinned source).
+
 ## Step 4: Verify the connection
 
 After connecting, the harness should be able to list tools and call them. A quick test:

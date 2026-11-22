@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://saluca.com/contracts/tiresias.enterprise.decision/v2/schema.json",
+  "title": "tiresias.enterprise.decision/v2",
+  "description": "Pre-call decision contract between a caller (nhe-relay, T2.11) and Tiresias-ZT POST /cp/enterprise/decision (T1.05). Supersedes v1, which authenticated with the platform admin key. Transport: HTTPS POST, header `Authorization: Bearer <relay credential>`, JSON body = #/$defs/request. The relay credential (#/$defs/relay_credential) is issued by a Tiresias admin through POST /admin/relay-credentials, is bound to ONE tenant (the agent leaf's `customer`) and optionally ONE site, is accepted by this endpoint and by no other, is stored by Tiresias only as a SHA-256, and is individually revocable and rotatable. The endpoint REFUSES the platform admin key: any request carrying X-Admin-Key is answered 403 admin_key_refused, and a caller MUST NOT hold or send it. An agent outside the credential's tenant is answered exactly as an unknown agent (404). A credential bound to a site must send that site as `site`. A v1 request (contract v1, or no contract) is answered 410 v1_retired unless the operator has opened a time-limited compatibility window. A 200 body is #/$defs/response; every other status carries #/$defs/error. Caller rules (normative): proceed ONLY on HTTP 200 with decision == \"allow\"; on decision == \"supervised\" route the call to the approval channel and do not proceed until a verified approval returns; refuse on decision == \"deny\", on any other decision value, on any non-200 status, on a body that does not validate, on a contract value other than this one, and on any transport failure or timeout. Absence of a Tiresias configuration, or of a relay credential, is a refusal, never an allow.",
+  "$defs": {
+    "contract": {
+      "const": "tiresias.enterprise.decision/v2"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$",
+      "description": "A plain identifier: no '/', no '*', at most 128 characters."
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract",
+        "agent",
+        "method",
+        "path"
+      ],
+      "properties": {
+        "contract": {
+          "$ref": "#/$defs/contract",
+          "description": "Required in v2."
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Registry agent slug (the leaf that owns backend, secret and route policy)."
+        },
+        "acting_as": {
+          "$ref": "#/$defs/identifier",
+          "description": "The acting identity (the capability token's agent_id; for Manto, the employee's agent). Omitted means the agent-wide row."
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "arguments": {
+              "type": "object",
+              "description": "Tool arguments, matched by canonical JSON (typed) against the template's tool_grants."
+            }
+          }
+        },
+        "site": {
+          "$ref": "#/$defs/identifier",
+          "description": "The caller's site. Required, and must match, when the credential is bound to a site; otherwise optional and echoed."
+        }
+      }
+    },
+    "autonomy": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "rule",
+        "reason",
+        "elevated",
+        "enforce"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "autonomous",
+            "supervised",
+            "denied"
+          ]
+        },
+        "rule": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "elevated": {
+          "type": "boolean"
+        },
+        "enforce": {
+          "type": "boolean"
+        }
+      }
+    },
+    "tool_rule": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "rule",
+        "reason"
+      ],
+      "properties": {
+        "verdict": {
+          "enum": [
+            "allow",
+            "ask",
+            "deny"
+          ]
+        },
+        "rule": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract",
+        "decision",
+        "reason",
+        "agent",
+        "acting_as",
+        "route_decision",
+        "route_reason",
+        "matched_policy",
+        "autonomy",
+        "tool_rule",
+        "spend_caps",
+        "template",
+        "tenant",
+        "site",
+        "credential_id"
+      ],
+      "properties": {
+        "contract": {
+          "$ref": "#/$defs/contract"
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "supervised",
+            "deny"
+          ],
+          "description": "The one field a caller acts on. Most restrictive of route policy, tool rules and autonomy."
+        },
+        "reason": {
+          "type": "string"
+        },
+        "agent": {
+          "type": "string"
+        },
+        "acting_as": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route_decision": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        },
+        "route_reason": {
+          "type": "string"
+        },
+        "matched_policy": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "autonomy": {
+          "$ref": "#/$defs/autonomy"
+        },
+        "tool_rule": {
+          "$ref": "#/$defs/tool_rule"
+        },
+        "spend_caps": {
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "template": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tenant": {
+          "type": "string",
+          "description": "The tenant the credential is bound to (every answer is about an agent of this tenant)."
+        },
+        "site": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "credential_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "description": "The public id of the credential that asked."
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "contract",
+        "error"
+      ],
+      "properties": {
+        "contract": {
+          "enum": [
+            "tiresias.enterprise.decision/v1",
+            "tiresias.enterprise.decision/v2"
+          ],
+          "description": "v2, or v1 for an answer given inside the v1 compatibility window."
+        },
+        "error": {
+          "enum": [
+            "enterprise_api_disabled",
+            "invalid_json",
+            "v1_retired",
+            "unsupported_contract",
+            "admin_key_refused",
+            "credential_required",
+            "invalid_credential",
+            "credential_revoked",
+            "credential_store_unreadable",
+            "unsupported_field",
+            "agent_required",
+            "method_required",
+            "path_required",
+            "invalid_acting_as",
+            "invalid_site",
+            "site_mismatch",
+            "invalid_tool",
+            "unknown_agent",
+            "registry_unreadable"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        },
+        "supported": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "relay_credential": {
+      "type": "string",
+      "pattern": "^tzr_[0-9a-f]{16}_[0-9a-f]{64}$",
+      "description": "The raw relay credential: `tzr_` + 16 hex id + `_` + 64 hex secret. The id is public (it names the record for revoke and rotate); the whole value is a secret. A caller holds exactly one, as a deployment secret, and refuses to send any value of another shape."
+    }
+  }
+}

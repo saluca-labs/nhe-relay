@@ -21,6 +21,7 @@ import {
   verifyWorkspaceRevision,
   verifyWorkspaceHistory
 } from "../src/harness/workspace.js";
+import { TEST_RELAY_CREDENTIAL } from "./support/relay-credential.js";
 
 const HMAC = "test-only-hmac-key-for-workspace-tests-0123";
 
@@ -465,11 +466,11 @@ describe("MCP integration: workspace tools", () => {
       token_ttl_sec: 3600,
       employees: [{ id: "emp-001", entity_id: "agent-emp-001", credential: "EMP_001_KEY", grants: ["soul.*"] }],
       soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 },
-      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", timeout_ms: 1000 }
+      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", agent: "acme", timeout_ms: 1000 }
     });
     const env = {
       RELAY_ENABLED: "yes", RELAY_HMAC_KEY: HMAC,
-      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: "tiresias-secret"
+      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: TEST_RELAY_CREDENTIAL
     };
     const { token } = await login.issueToken(HMAC, {
       employeeId: "emp-001", entityId: "agent-emp-001", ttlSec: 3600, now: 1_700_000_000_000
@@ -478,7 +479,7 @@ describe("MCP integration: workspace tools", () => {
     headers.set("authorization", "Bearer " + token);
 
     const fetcher = async (url) => {
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ allow: true }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v2", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
 
@@ -514,11 +515,11 @@ describe("MCP integration: workspace tools", () => {
       token_ttl_sec: 3600,
       employees: [{ id: "emp-001", entity_id: "agent-emp-001", credential: "EMP_001_KEY", grants: ["soul.*"] }],
       soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 },
-      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", timeout_ms: 1000 }
+      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", agent: "acme", timeout_ms: 1000 }
     });
     const env = {
       RELAY_ENABLED: "yes", RELAY_HMAC_KEY: HMAC,
-      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: "tiresias-secret"
+      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: TEST_RELAY_CREDENTIAL
     };
     const { token } = await login.issueToken(HMAC, {
       employeeId: "emp-001", entityId: "agent-emp-001", ttlSec: 3600, now: 1_700_000_000_000
@@ -527,7 +528,7 @@ describe("MCP integration: workspace tools", () => {
     headers.set("authorization", "Bearer " + token);
 
     const fetcher = async (url) => {
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ allow: true }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v2", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
 
@@ -564,11 +565,11 @@ describe("MCP integration: workspace tools", () => {
       token_ttl_sec: 3600,
       employees: [{ id: "emp-001", entity_id: "agent-emp-001", credential: "EMP_001_KEY", grants: ["soul.*"] }],
       soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 },
-      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", timeout_ms: 1000 }
+      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", agent: "acme", timeout_ms: 1000 }
     });
     const env = {
       RELAY_ENABLED: "yes", RELAY_HMAC_KEY: HMAC,
-      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: "tiresias-secret"
+      EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: TEST_RELAY_CREDENTIAL
     };
     const { token } = await login.issueToken(HMAC, {
       employeeId: "emp-001", entityId: "agent-emp-001", ttlSec: 3600, now: 1_700_000_000_000
@@ -577,7 +578,7 @@ describe("MCP integration: workspace tools", () => {
     headers.set("authorization", "Bearer " + token);
 
     const fetcher = async (url) => {
-      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ allow: true }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://tiresias.test/api") return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v2", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       return new Response("{}", { status: 200 });
     };
 

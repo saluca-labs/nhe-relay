@@ -29,6 +29,7 @@ import {
 } from "../src/harness/plan.js";
 import { issueReceipt, genesis, nextRoot } from "../src/chain.js";
 import { TOOLS } from "../src/harness/tools.js";
+import { TEST_RELAY_CREDENTIAL } from "./support/relay-credential.js";
 
 const HMAC = "test-only-hmac-key-for-plan-tests-0123456789";
 const EMP = "emp-001";
@@ -341,14 +342,17 @@ describe("plan: via the MCP server", () => {
       enabled: true,
       token_ttl_sec: 3600,
       employees: [{ id: EMP, entity_id: ENT, credential: "EMP_001_KEY", grants: ["soul.*"] }],
-      soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 }
+      soul: { url: "https://soul-svc.test/mcp", secret: "SOUL_KEY", timeout_ms: 2000 },
+      tiresias: { url: "https://tiresias.test/api", secret: "TIRESIAS_KEY", agent: "acme", timeout_ms: 1000 }
     });
-    const env = { RELAY_ENABLED: "yes", RELAY_HMAC_KEY: KEY, EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret" };
+    const env = { RELAY_ENABLED: "yes", RELAY_HMAC_KEY: KEY, EMP_001_KEY: "emp-secret-001", SOUL_KEY: "soul-secret", TIRESIAS_KEY: TEST_RELAY_CREDENTIAL };
     const { token } = await login.issueToken(KEY, { employeeId: EMP, entityId: ENT, ttlSec: 3600, now: 1_700_000_000_000 });
     const headers = new Headers();
     headers.set("authorization", "Bearer " + token);
     let forwarded = 0;
-    const fetcher = async () => {
+    const fetcher = async (url) => {
+      if (url === "https://tiresias.test/api")
+        return new Response(JSON.stringify({ contract: "tiresias.enterprise.decision/v2", decision: "allow" }), { status: 200, headers: { "content-type": "application/json" } });
       forwarded++;
       return new Response("{}", { status: 200 });
     };
